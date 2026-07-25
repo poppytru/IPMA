@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPMA Level D Revision Hub</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; }
+        .nav { background: #16213e; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        .nav h1 { font-size: 1.4rem; color: #4fc3f7; }
+        .nav-links { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .nav-links a { color: #aaa; text-decoration: none; padding: 0.5rem 1rem; border-radius: 5px; transition: all 0.3s; }
+        .nav-links a:hover, .nav-links a.active { color: #fff; background: #0f3460; }
+        .exam-toggle { display: flex; justify-content: center; gap: 1rem; padding: 1.5rem; background: #16213e; }
+        .exam-toggle button { padding: 0.8rem 2rem; border: 2px solid #4fc3f7; background: transparent; color: #4fc3f7; border-radius: 25px; cursor: pointer; font-size: 1rem; transition: all 0.3s; }
+        .exam-toggle button.active { background: #4fc3f7; color: #1a1a2e; font-weight: bold; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .section { display: none; }
+        .section.active { display: block; }
+</style>
+</head>
+<body>
+<nav class="nav">
+    <h1>📚 IPMA Level D Revision Hub</h1>
+    <div class="nav-links">
+        <a href="#" onclick="showSection('notes')" class="active">Notes</a>
+        <a href="#" onclick="showSection('flashcards')">Flashcards</a>
+        <a href="#" onclick="showSection('mcq-flash')">MCQ Cards</a>
+        <a href="#" onclick="showSection('saq-flash')">SAQ Cards</a>
+        <a href="#" onclick="showSection('practice')">Practice Papers</a>
+        <a href="#" onclick="showSection('podcasts')">Podcasts</a>
+        <a href="#" onclick="showSection('tips')">Exam Tips</a>
+    </div>
+</nav>
+<div class="exam-toggle">
+    <button class="active" onclick="setExam('mcq')">MCQ Exam (1hr, 60 Qs, 60 marks)</button>
+    <button onclick="setExam('saq')">SAQ Exam (2hr, 14 Qs answer 12, 120 marks)</button>
+</div>
+<div class="container" id="app"></div>
+
+<style>
+    .topic-card { background: #16213e; border-radius: 12px; padding: 1.5rem; margin: 1rem 0; border-left: 4px solid #4fc3f7; }
+    .topic-card h3 { color: #4fc3f7; margin-bottom: 0.5rem; }
+    .topic-card h4 { color: #81d4fa; margin: 1rem 0 0.5rem; }
+    .topic-card p, .topic-card li { color: #ccc; line-height: 1.6; }
+    .topic-card ul { padding-left: 1.5rem; }
+    .category-header { background: linear-gradient(135deg, #0f3460, #16213e); padding: 1rem 1.5rem; border-radius: 10px; margin: 2rem 0 1rem; }
+    .category-header h2 { color: #fff; }
+    .flashcard-container { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+    .flashcard { width: 350px; height: 250px; perspective: 1000px; cursor: pointer; }
+    .flashcard-inner { width: 100%; height: 100%; position: relative; transition: transform 0.6s; transform-style: preserve-3d; }
+    .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+    .flashcard-front, .flashcard-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+    .flashcard-front { background: linear-gradient(135deg, #1e3a5f, #16213e); border: 2px solid #4fc3f7; }
+    .flashcard-back { background: linear-gradient(135deg, #0f3460, #1a1a2e); border: 2px solid #81d4fa; transform: rotateY(180deg); overflow-y: auto; align-items: flex-start; text-align: left; }
+    .flashcard-back ul { padding-left: 1rem; }
+    .flashcard-back li { margin: 0.3rem 0; font-size: 0.85rem; }
+    .rag-buttons { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .rag-btn { padding: 0.3rem 0.8rem; border: none; border-radius: 15px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+    .rag-btn.red { background: #ef5350; color: #fff; }
+    .rag-btn.amber { background: #ffa726; color: #1a1a2e; }
+    .rag-btn.green { background: #66bb6a; color: #1a1a2e; }
+    .rag-btn.active-red { box-shadow: 0 0 10px #ef5350; transform: scale(1.1); }
+    .rag-btn.active-amber { box-shadow: 0 0 10px #ffa726; transform: scale(1.1); }
+    .rag-btn.active-green { box-shadow: 0 0 10px #66bb6a; transform: scale(1.1); }
+    .rag-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 0.5rem; }
+    .progress-bar { background: #0f3460; border-radius: 10px; height: 20px; margin: 1rem 0; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s; }
+    .timer-display { font-size: 3rem; color: #4fc3f7; text-align: center; font-family: monospace; margin: 2rem 0; }
+    .btn { padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: all 0.3s; }
+    .btn-primary { background: #4fc3f7; color: #1a1a2e; font-weight: bold; }
+    .btn-primary:hover { background: #81d4fa; transform: translateY(-2px); }
+    .btn-secondary { background: #0f3460; color: #4fc3f7; border: 1px solid #4fc3f7; }
+    .filter-bar { display: flex; gap: 0.5rem; margin: 1rem 0; flex-wrap: wrap; }
+    .filter-btn { padding: 0.4rem 1rem; border: 1px solid #4fc3f7; background: transparent; color: #4fc3f7; border-radius: 20px; cursor: pointer; font-size: 0.85rem; }
+    .filter-btn.active { background: #4fc3f7; color: #1a1a2e; }
+    .podcast-card { background: #16213e; border-radius: 12px; padding: 1.5rem; margin: 1rem 0; }
+    .podcast-card h3 { color: #4fc3f7; margin-bottom: 0.5rem; }
+    .podcast-card p { color: #aaa; margin-bottom: 1rem; }
+    .audio-placeholder { background: #0f3460; padding: 1rem; border-radius: 8px; text-align: center; color: #81d4fa; }
+    .mcq-question { background: #16213e; border-radius: 12px; padding: 1.5rem; margin: 1rem 0; }
+    .mcq-question h4 { color: #4fc3f7; margin-bottom: 1rem; }
+    .mcq-option { padding: 0.8rem 1rem; margin: 0.5rem 0; background: #0f3460; border-radius: 8px; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; }
+    .mcq-option:hover { border-color: #4fc3f7; }
+    .mcq-option.correct { border-color: #66bb6a; background: rgba(102,187,106,0.1); }
+    .mcq-option.incorrect { border-color: #ef5350; background: rgba(239,83,80,0.1); }
+    .stats-panel { background: #16213e; border-radius: 12px; padding: 1.5rem; margin: 1rem 0; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin: 1rem 0; }
+    .stat-box { background: #0f3460; padding: 1rem; border-radius: 8px; text-align: center; }
+    .stat-box .number { font-size: 2rem; color: #4fc3f7; font-weight: bold; }
+    .stat-box .label { color: #aaa; font-size: 0.85rem; }
+    .tip-card { background: #16213e; border-radius: 12px; padding: 1.5rem; margin: 1rem 0; border-left: 4px solid #ffa726; }
+    .tip-card h3 { color: #ffa726; margin-bottom: 0.5rem; }
+    @media(max-width:768px) { .nav { flex-direction: column; gap: 1rem; } .flashcard { width: 100%; } }
+</style>
+
+<script>
+// ===== DATA STORE =====
+const mcqTopics = {
+    perspective: [
+        { id: 'strategy', name: 'Strategy', competence: 'CE 4.3.1' },
+        { id: 'compliance', name: 'Compliance, Standards & Regulations', competence: 'CE 4.3.4' }
+    ],
+    people: [
+        { id: 'self-reflection', name: 'Self-Reflection & Self-Management', competence: 'CE 4.4.1' },
+        { id: 'integrity', name: 'Personal Integrity & Reliability', competence: 'CE 4.4.2' },
+        { id: 'communication', name: 'Personal Communication', competence: 'CE 4.4.3' },
+        { id: 'negotiation', name: 'Negotiation', competence: 'CE 4.4.6' },
+        { id: 'results', name: 'Results Orientation', competence: 'CE 4.4.8' }
+    ],
+    practice: [
+        { id: 'design', name: 'Project Design', competence: 'CE 4.5.1' },
+        { id: 'requirements', name: 'Requirements & Objectives', competence: 'CE 4.5.2' },
+        { id: 'scope', name: 'Scope', competence: 'CE 4.5.3' },
+        { id: 'procurement', name: 'Procurement', competence: 'CE 4.5.13' },
+        { id: 'plan-control', name: 'Plan & Control', competence: 'CE 4.5.5' },
+        { id: 'risk', name: 'Risk & Opportunity', competence: 'CE 4.5.7' },
+        { id: 'change', name: 'Change & Transformation', competence: 'CE 4.5.10' }
+    ]
+};
+
+const saqTopics = {
+    perspective: [
+        { id: 'governance', name: 'Governance, Structures & Processes', competence: 'CE 4.3.2' },
+        { id: 'power', name: 'Power & Interest', competence: 'CE 4.3.3' },
+        { id: 'culture', name: 'Culture & Values', competence: 'CE 4.3.5' }
+    ],
+    people: [
+        { id: 'relationships', name: 'Relationships & Engagement', competence: 'CE 4.4.4' },
+        { id: 'leadership', name: 'Leadership', competence: 'CE 4.4.5' },
+        { id: 'teamwork', name: 'Teamwork', competence: 'CE 4.4.7' },
+        { id: 'conflict', name: 'Conflict & Crisis', competence: 'CE 4.4.9' },
+        { id: 'resourcefulness', name: 'Resourcefulness', competence: 'CE 4.4.10' }
+    ],
+    practice: [
+        { id: 'time', name: 'Time', competence: 'CE 4.5.4' },
+        { id: 'organisation', name: 'Organisation & Information', competence: 'CE 4.5.6' },
+        { id: 'quality', name: 'Quality', competence: 'CE 4.5.8' },
+        { id: 'finance', name: 'Finance', competence: 'CE 4.5.9' },
+        { id: 'resources', name: 'Resources', competence: 'CE 4.5.11' },
+        { id: 'stakeholders', name: 'Stakeholders', competence: 'CE 4.5.12' }
+    ]
+};
+
+// ===== TOPIC NOTES DATA =====
+const topicNotes = {
+    // MCQ TOPICS
+    'strategy': {
+        title: 'Strategy (CE 4.3.1)',
+        definition: 'The ability to understand the strategic direction of the organisation and align the project with strategic objectives, mission and vision.',
+        keyCompetencies: ['Aligning project with organisational strategy', 'Understanding mission, vision and values', 'Identifying strategic drivers for the project', 'Ensuring project contributes to portfolio/programme objectives'],
+        models: ['PESTLE Analysis (Political, Economic, Social, Technological, Legal, Environmental)', 'SWOT Analysis (Strengths, Weaknesses, Opportunities, Threats)', 'Porter\'s Five Forces', 'Balanced Scorecard (Financial, Customer, Internal Process, Learning & Growth)', 'Ansoff Matrix (Market Penetration, Development, Product Development, Diversification)'],
+        keyIdeas: ['Projects exist to deliver strategic objectives', 'Project success = delivering business value, not just on time/budget', 'Strategy cascades: Vision → Mission → Strategy → Portfolio → Programme → Project', 'Business case links project to strategic need', 'Benefits realisation extends beyond project delivery']
+    },
+    'compliance': {
+        title: 'Compliance, Standards & Regulations (CE 4.3.4)',
+        definition: 'The ability to identify and ensure adherence to all relevant legislation, regulations, standards, agreements, and ethical norms.',
+        keyCompetencies: ['Identifying relevant regulations and standards', 'Ensuring legal compliance throughout project', 'Understanding professional codes of conduct', 'Managing health and safety requirements'],
+        models: ['Regulatory Compliance Framework', 'ISO 21500 (Guidance on Project Management)', 'ISO 31000 (Risk Management)', 'PRINCE2/PMBOK as standards frameworks', 'ICB4 Competence Framework'],
+        keyIdeas: ['Compliance is non-negotiable - legal requirements override project objectives', 'Standards can be mandatory (regulations) or voluntary (best practice)', 'Environmental legislation increasingly important', 'Data protection (GDPR) affects most projects', 'Professional ethics: transparency, honesty, responsibility', 'Health & Safety is paramount - duty of care']
+    },
+    'self-reflection': {
+        title: 'Self-Reflection & Self-Management (CE 4.4.1)',
+        definition: 'The ability to recognise and reflect on personal behaviour, preferences and emotions, understand their impact, and manage personal effectiveness.',
+        keyCompetencies: ['Self-awareness and emotional intelligence', 'Time management and personal organisation', 'Stress management and resilience', 'Continuous personal development'],
+        models: ['Johari Window (Open, Blind, Hidden, Unknown)', 'Kolb\'s Learning Cycle (Experience → Reflect → Conceptualise → Experiment)', 'Eisenhower Matrix (Urgent/Important)', 'Emotional Intelligence (Goleman: Self-awareness, Self-regulation, Motivation, Empathy, Social skills)', 'GROW Model for personal development'],
+        keyIdeas: ['Self-awareness is the foundation of leadership', 'Reflective practice improves future performance', 'Personal values influence decision-making style', 'Work-life balance sustains long-term performance', 'Feedback (360°) supports blind spot identification', 'Continuous Professional Development (CPD) is essential']
+    },
+    'integrity': {
+        title: 'Personal Integrity & Reliability (CE 4.4.2)',
+        definition: 'The ability to act in a consistent, honest, transparent and ethical manner, following through on commitments.',
+        keyCompetencies: ['Demonstrating ethical behaviour', 'Building trust through consistent actions', 'Taking responsibility for decisions', 'Maintaining confidentiality'],
+        models: ['Trust Equation (Credibility + Reliability + Intimacy / Self-Orientation)', 'Ethical Decision-Making Framework', 'Values-Based Leadership', 'Integrity Triangle (Values, Principles, Actions)'],
+        keyIdeas: ['Trust is built through consistent behaviour over time', 'Reliability = doing what you say you will do', 'Ethical dilemmas require balancing competing values', 'Transparency builds credibility with stakeholders', 'Accountability means owning outcomes (positive and negative)', 'Personal brand is built on integrity']
+    },
+    'communication': {
+        title: 'Personal Communication (CE 4.4.3)',
+        definition: 'The ability to exchange information, ideas and emotions effectively, adapting communication style to context and audience.',
+        keyCompetencies: ['Active listening', 'Clear and concise messaging', 'Adapting style to audience', 'Non-verbal communication awareness', 'Facilitating effective meetings'],
+        models: ['Shannon-Weaver Communication Model (Sender → Encode → Channel → Decode → Receiver + Noise)', 'Mehrabian\'s 7-38-55 Rule (Words, Tone, Body Language)', 'Communication Planning Matrix (Who, What, When, How, Why)', 'Push vs Pull Communication', 'Tuckman adapted for communication maturity'],
+        keyIdeas: ['Active listening is more important than speaking', '70% of project manager time is spent communicating', 'Tailor message to audience needs and knowledge level', 'Written communication creates audit trail', 'Non-verbal cues can contradict verbal messages', 'Cultural differences affect communication styles', 'Feedback loops confirm understanding']
+    },
+    'negotiation': {
+        title: 'Negotiation (CE 4.4.6)',
+        definition: 'The ability to reach agreements through dialogue, balancing different interests while maintaining relationships.',
+        keyCompetencies: ['Preparing negotiation strategy', 'Identifying interests vs positions', 'Creating win-win solutions', 'Managing difficult conversations'],
+        models: ['Harvard Principled Negotiation (Separate people from problem, Focus on interests not positions, Invent options for mutual gain, Use objective criteria)', 'BATNA (Best Alternative To a Negotiated Agreement)', 'Thomas-Kilmann Conflict Modes (Competing, Collaborating, Compromising, Avoiding, Accommodating)', 'ZOPA (Zone of Possible Agreement)'],
+        keyIdeas: ['Interests differ from positions - dig deeper', 'BATNA gives you negotiating power', 'Win-win is the goal for long-term relationships', 'Preparation is 80% of negotiation success', 'Cultural norms affect negotiation styles', 'Silence is a powerful negotiation tool', 'Document all agreements']
+    },
+    'results': {
+        title: 'Results Orientation (CE 4.4.8)',
+        definition: 'The ability to focus on agreed objectives and desired outcomes, making effective decisions and taking action to deliver results.',
+        keyCompetencies: ['Setting SMART objectives', 'Making effective decisions', 'Prioritising activities', 'Driving delivery with urgency', 'Measuring and reporting progress'],
+        models: ['SMART Objectives (Specific, Measurable, Achievable, Relevant, Time-bound)', 'OKRs (Objectives & Key Results)', 'Decision Matrix / Weighted Scoring', 'MoSCoW Prioritisation (Must, Should, Could, Won\'t)', 'Plan-Do-Check-Act (PDCA/Deming Cycle)'],
+        keyIdeas: ['Focus on outcomes not just outputs', 'Clear success criteria enable measurement', 'Decision-making should be timely - delayed decisions have costs', 'Delegation enables focus on high-value activities', 'Progress measurement enables course correction', 'Results require balancing quality, time, cost and scope']
+    },
+
+    'design': {
+        title: 'Project Design (CE 4.5.1)',
+        definition: 'The ability to interpret stakeholder demands, concerns and drivers, and to translate them into the high-level design of the project.',
+        keyCompetencies: ['Interpreting project context', 'Defining project approach and methodology', 'Establishing success criteria', 'Designing project governance'],
+        models: ['Project Canvas', 'Business Case Structure (Strategic fit, Options, Benefits, Costs, Risks, Timescales)', 'Project Lifecycle Models (Waterfall, Agile, Hybrid)', 'Gate Review Process', 'Feasibility Study Framework'],
+        keyIdeas: ['Project design translates strategy into actionable plans', 'Success criteria must be agreed upfront with stakeholders', 'Methodology choice depends on complexity and uncertainty', 'Lessons learned from previous projects inform design', 'Governance structure must match project complexity', 'Key design decisions constrain later choices']
+    },
+    'requirements': {
+        title: 'Requirements & Objectives (CE 4.5.2)',
+        definition: 'The ability to establish and agree the project objectives, and to identify, analyse and prioritise requirements.',
+        keyCompetencies: ['Eliciting requirements from stakeholders', 'Documenting and managing requirements', 'Prioritising requirements', 'Managing requirements changes', 'Traceability'],
+        models: ['Requirements Hierarchy (Business → Stakeholder → Solution → Transition)', 'MoSCoW Prioritisation', 'Kano Model (Basic, Performance, Excitement needs)', 'User Stories (As a... I want... So that...)', 'Requirements Traceability Matrix'],
+        keyIdeas: ['Requirements define WHAT, not HOW', 'Functional vs Non-functional requirements', 'Requirements evolve - need change management', 'Ambiguous requirements cause scope creep', 'Traceability ensures nothing is lost', 'Stakeholder sign-off creates baseline']
+    },
+    'scope': {
+        title: 'Scope (CE 4.5.3)',
+        definition: 'The ability to define and control what is and is not included in the project and its deliverables.',
+        keyCompetencies: ['Defining project scope', 'Creating Work Breakdown Structure', 'Managing scope changes', 'Preventing scope creep'],
+        models: ['Work Breakdown Structure (WBS) - deliverable-oriented decomposition', 'Product Breakdown Structure (PBS)', 'Scope Statement (Inclusions, Exclusions, Assumptions, Constraints)', 'Change Control Process', '100% Rule (WBS must capture ALL work)'],
+        keyIdeas: ['Scope defines boundaries - what is IN and OUT', 'WBS is the cornerstone of planning', 'Scope creep = uncontrolled expansion without formal change', 'Gold plating = adding unrequested features', 'Configuration management tracks deliverable versions', 'Baseline scope enables change impact assessment']
+    },
+    'procurement': {
+        title: 'Procurement (CE 4.5.13)',
+        definition: 'The ability to obtain the best available goods, services and results from external providers.',
+        keyCompetencies: ['Make-or-buy decisions', 'Selecting procurement strategy', 'Managing contracts', 'Evaluating supplier performance'],
+        models: ['Procurement Lifecycle (Plan → Select → Administer → Close)', 'Contract Types (Fixed Price, Cost Plus, Time & Materials)', 'Tender Evaluation Matrix', 'Supplier Relationship Management', 'Kraljic Matrix (Leverage, Strategic, Non-critical, Bottleneck)'],
+        keyIdeas: ['Make-or-buy decision based on capability, capacity, cost', 'Contract type allocates risk between buyer and seller', 'Fixed price = risk on supplier; Cost plus = risk on buyer', 'Clear specifications prevent disputes', 'Relationship management beyond contract compliance', 'Early supplier involvement can improve outcomes']
+    },
+    'plan-control': {
+        title: 'Plan & Control (CE 4.5.5)',
+        definition: 'The ability to develop and maintain plans, and to monitor and control performance against those plans.',
+        keyCompetencies: ['Developing integrated project plans', 'Establishing baselines', 'Monitoring progress', 'Taking corrective action', 'Earned Value Management'],
+        models: ['Planning Cycle (Plan → Execute → Monitor → Control)', 'Earned Value Management (PV, EV, AC, SPI, CPI)', 'Gantt Charts / Bar Charts', 'Milestone Planning', 'Rolling Wave Planning', 'Tolerance and Exception Reporting'],
+        keyIdeas: ['Plans are living documents - update regularly', 'Baseline enables variance analysis', 'EVM integrates scope, time and cost measurement', 'SPI < 1 = behind schedule; CPI < 1 = over budget', 'Tolerances define acceptable variance before escalation', 'Control = comparing actual vs plan and taking action']
+    },
+    'risk': {
+        title: 'Risk & Opportunity (CE 4.5.7)',
+        definition: 'The ability to identify, assess and manage risks and opportunities, including the implementation of responses.',
+        keyCompetencies: ['Identifying risks and opportunities', 'Qualitative and quantitative analysis', 'Developing response strategies', 'Maintaining risk register'],
+        models: ['Risk Management Process (Identify → Assess → Plan Responses → Monitor)', 'Probability-Impact Matrix (P-I Grid)', 'Risk Response Strategies - Threats (Avoid, Transfer, Mitigate, Accept)', 'Risk Response Strategies - Opportunities (Exploit, Share, Enhance, Accept)', 'Monte Carlo Simulation', 'Expected Monetary Value (EMV)'],
+        keyIdeas: ['Risk = uncertainty that matters (positive or negative)', 'Opportunities are positive risks - actively seek them', 'Risk appetite defines how much risk is acceptable', 'Residual risk remains after response implementation', 'Secondary risks created by responses need managing', 'Risk proximity = when the risk might occur', 'Regular risk reviews keep register current']
+    },
+    'change': {
+        title: 'Change & Transformation (CE 4.5.10)',
+        definition: 'The ability to manage change and transformation within and beyond the project, enabling adoption of new processes, behaviours and outcomes.',
+        keyCompetencies: ['Managing organisational change', 'Building change readiness', 'Overcoming resistance', 'Sustaining change outcomes'],
+        models: ['Kotter\'s 8 Steps (Urgency → Coalition → Vision → Communication → Empowerment → Quick Wins → Consolidation → Anchoring)', 'Lewin\'s Change Model (Unfreeze → Change → Refreeze)', 'ADKAR (Awareness, Desire, Knowledge, Ability, Reinforcement)', 'Change Curve (Denial → Resistance → Exploration → Commitment)', 'Stakeholder Impact Assessment'],
+        keyIdeas: ['Change management is about PEOPLE not processes', 'Resistance is natural - address root causes', 'Communication is the #1 change enabler', 'Quick wins build momentum and credibility', 'Sponsorship from senior leaders is critical', 'Benefits only realised when change is adopted', 'Transition period requires extra support']
+    },
+
+    // SAQ TOPICS
+    'governance': {
+        title: 'Governance, Structures & Processes (CE 4.3.2)',
+        definition: 'The ability to understand and apply established governance structures and processes, ensuring appropriate decision-making and oversight.',
+        keyCompetencies: ['Understanding organisational governance frameworks', 'Applying project governance structures', 'Establishing decision-making processes', 'Ensuring accountability and reporting'],
+        models: ['Three Lines of Defence Model', 'Project Board / Steering Committee Structure', 'RACI Matrix (Responsible, Accountable, Consulted, Informed)', 'Stage-Gate Process', 'Portfolio/Programme/Project Hierarchy', 'PMO Functions (Supportive, Controlling, Directive)'],
+        keyIdeas: ['Governance provides oversight and decision-making authority', 'Clear roles prevent confusion and duplication', 'Escalation paths must be defined before issues arise', 'Project sponsor is the key governance role', 'Governance should be proportionate to project complexity', 'Regular reporting enables informed decision-making', 'Audit provides independent assurance']
+    },
+    'power': {
+        title: 'Power & Interest (CE 4.3.3)',
+        definition: 'The ability to recognise and manage personal and organisational power dynamics and interests that influence project outcomes.',
+        keyCompetencies: ['Identifying sources of power', 'Mapping political landscape', 'Building influence networks', 'Managing competing interests'],
+        models: ['Power/Interest Grid (Mendelow) - Manage Closely, Keep Satisfied, Keep Informed, Monitor', 'French & Raven\'s Sources of Power (Legitimate, Reward, Coercive, Expert, Referent, Informational)', 'Influence Strategies (Push/Pull)', 'Stakeholder Salience Model (Power, Legitimacy, Urgency)', 'Organisational Politics Map'],
+        keyIdeas: ['Power is not just hierarchical - experts and networks have power', 'Hidden agendas can derail projects', 'Building coalitions creates collective influence', 'Understanding motivations helps manage stakeholders', 'Formal authority is only one source of power', 'Political awareness is not political manipulation', 'Influence without authority is a key PM skill']
+    },
+    'culture': {
+        title: 'Culture & Values (CE 4.3.5)',
+        definition: 'The ability to understand and incorporate cultural and value influences on the project, adapting approach accordingly.',
+        keyCompetencies: ['Recognising cultural differences', 'Adapting leadership style to cultural context', 'Building inclusive project environments', 'Managing cross-cultural teams'],
+        models: ['Hofstede\'s Cultural Dimensions (Power Distance, Individualism, Masculinity, Uncertainty Avoidance, Long-term Orientation, Indulgence)', 'Schein\'s Three Levels of Culture (Artefacts, Espoused Values, Basic Assumptions)', 'Trompenaars\' Cultural Dimensions', 'Cultural Iceberg Model', 'Handy\'s Organisational Cultures (Power, Role, Task, Person)'],
+        keyIdeas: ['Culture = "the way we do things around here"', 'National, organisational and team cultures all interact', 'Visible artefacts reflect deeper values and assumptions', 'Cultural misunderstandings cause conflict', 'Inclusive environments improve team performance', 'Project culture can differ from organisational culture', 'Values alignment between project and organisation aids success']
+    },
+    'relationships': {
+        title: 'Relationships & Engagement (CE 4.4.4)',
+        definition: 'The ability to build and sustain personal and professional relationships, engaging others effectively to achieve shared goals.',
+        keyCompetencies: ['Building rapport and trust', 'Networking effectively', 'Managing stakeholder engagement', 'Collaborative working'],
+        models: ['Stakeholder Engagement Assessment Matrix', 'Social Network Analysis', 'Trust-Building Model (Competence, Consistency, Care)', 'Engagement Levels (Unaware, Resistant, Neutral, Supportive, Leading)', 'Relationship Management Cycle'],
+        keyIdeas: ['Relationships are built over time through consistent behaviour', 'Trust is the foundation of effective working relationships', 'Networking extends influence beyond immediate team', 'Engagement strategies must be tailored to individual stakeholders', 'Psychological safety enables open communication', 'Reciprocity builds goodwill', 'Virtual relationships require extra deliberate effort']
+    },
+    'leadership': {
+        title: 'Leadership (CE 4.4.5)',
+        definition: 'The ability to provide direction, motivate and inspire others, creating an environment where people can perform at their best.',
+        keyCompetencies: ['Setting direction and vision', 'Motivating and inspiring teams', 'Adapting leadership style', 'Developing others', 'Making decisions under uncertainty'],
+        models: ['Situational Leadership (Hersey & Blanchard: Directing, Coaching, Supporting, Delegating)', 'Transformational vs Transactional Leadership', 'Servant Leadership', 'Adair\'s Action-Centred Leadership (Task, Team, Individual)', 'Goleman\'s 6 Leadership Styles (Visionary, Coaching, Affiliative, Democratic, Pacesetting, Commanding)'],
+        keyIdeas: ['Leadership is not the same as management', 'Effective leaders adapt style to situation and maturity of team', 'Vision provides purpose and direction', 'Empowerment increases ownership and motivation', 'Leading by example builds credibility', 'Emotional intelligence is critical for leaders', 'Developing others creates sustainable capability']
+    },
+    'teamwork': {
+        title: 'Teamwork (CE 4.4.7)',
+        definition: 'The ability to bring people together, build effective teams, and manage team dynamics to achieve shared objectives.',
+        keyCompetencies: ['Building high-performing teams', 'Managing team dynamics', 'Creating team culture', 'Virtual team management', 'Developing team capability'],
+        models: ['Tuckman\'s Team Development (Forming, Storming, Norming, Performing, Adjourning)', 'Belbin Team Roles (9 roles: Plant, Resource Investigator, Coordinator, etc.)', 'Lencioni\'s 5 Dysfunctions (Absence of Trust → Fear of Conflict → Lack of Commitment → Avoidance of Accountability → Inattention to Results)', 'GRPI Model (Goals, Roles, Processes, Interpersonal)', 'Hackman\'s 5 Conditions for Team Effectiveness'],
+        keyIdeas: ['Teams go through development stages - storming is normal', 'Diverse teams outperform homogeneous ones', 'Clear roles and responsibilities prevent confusion', 'Team charter establishes working agreements', 'Psychological safety enables risk-taking and innovation', 'Recognition and celebration maintain motivation', 'Virtual teams need deliberate relationship-building']
+    },
+
+    'conflict': {
+        title: 'Conflict & Crisis (CE 4.4.9)',
+        definition: 'The ability to identify, manage and resolve conflicts and crises constructively, maintaining relationships and project progress.',
+        keyCompetencies: ['Recognising early signs of conflict', 'Selecting appropriate resolution approach', 'Managing project crises', 'Turning conflict into positive outcomes'],
+        models: ['Thomas-Kilmann Conflict Modes (Competing, Collaborating, Compromising, Avoiding, Accommodating)', 'Conflict Escalation Ladder (Glasl)', 'Crisis Management Framework (Prevention → Preparation → Response → Recovery)', 'Interest-Based Relational Approach', 'Mediation Process'],
+        keyIdeas: ['Some conflict is healthy - constructive disagreement improves decisions', 'Unresolved conflict escalates and becomes harder to manage', 'Collaboration is ideal but takes time and energy', 'Crisis management requires rapid decision-making', 'Root cause analysis prevents recurrence', 'Separate the people from the problem', 'Post-crisis review captures lessons learned']
+    },
+    'resourcefulness': {
+        title: 'Resourcefulness (CE 4.4.10)',
+        definition: 'The ability to apply techniques, tools, knowledge and experience creatively to solve problems and overcome challenges.',
+        keyCompetencies: ['Creative problem-solving', 'Applying lateral thinking', 'Adapting to constraints', 'Innovation in approach', 'Learning from experience'],
+        models: ['De Bono\'s Six Thinking Hats (White, Red, Black, Yellow, Green, Blue)', 'TRIZ (Theory of Inventive Problem Solving)', 'Root Cause Analysis (5 Whys, Ishikawa/Fishbone)', 'Brainstorming and Mind Mapping', 'Design Thinking (Empathise, Define, Ideate, Prototype, Test)'],
+        keyIdeas: ['Resourcefulness thrives under constraints', 'Multiple perspectives improve problem-solving', 'Past experience informs but should not limit options', 'Creative solutions often combine existing ideas in new ways', 'Experimentation and prototyping reduce uncertainty', 'Lessons learned are only valuable if applied', 'Curiosity and openness drive innovation']
+    },
+    'time': {
+        title: 'Time (CE 4.5.4)',
+        definition: 'The ability to determine, schedule and monitor activities to optimise the use of time and deliver within agreed timeframes.',
+        keyCompetencies: ['Estimating activity durations', 'Developing schedules', 'Identifying critical path', 'Managing schedule compression', 'Monitoring schedule performance'],
+        models: ['Critical Path Method (CPM)', 'Program Evaluation and Review Technique (PERT)', 'Gantt Charts / Bar Charts', 'Network Diagrams (Activity on Node)', 'Schedule Compression (Crashing, Fast-tracking)', 'Critical Chain Project Management (CCPM)', 'Three-Point Estimating (Optimistic, Most Likely, Pessimistic)'],
+        keyIdeas: ['Critical path = longest path through network = minimum project duration', 'Float/slack = time an activity can slip without affecting end date', 'Fast-tracking increases risk (parallel activities)', 'Crashing increases cost (more resources)', 'Dependencies: FS (most common), SS, FF, SF', 'Lead and lag times adjust relationships', 'Schedule baseline enables variance tracking']
+    },
+    'organisation': {
+        title: 'Organisation & Information (CE 4.5.6)',
+        definition: 'The ability to establish and maintain effective organisational structures and information management for the project.',
+        keyCompetencies: ['Designing project organisation', 'Managing project information', 'Configuration management', 'Document control', 'Knowledge management'],
+        models: ['Organisational Breakdown Structure (OBS)', 'Responsibility Assignment Matrix (RAM/RACI)', 'Project Management Information System (PMIS)', 'Configuration Management Process', 'Knowledge Management Cycle (Create, Store, Share, Use)'],
+        keyIdeas: ['Clear organisation structure enables effective delivery', 'Information must be accessible, accurate and timely', 'Configuration management controls deliverable versions', 'Single source of truth prevents confusion', 'Knowledge transfer preserves organisational learning', 'Information overload is as problematic as too little', 'Security and access controls protect sensitive data']
+    },
+    'quality': {
+        title: 'Quality (CE 4.5.8)',
+        definition: 'The ability to ensure that project deliverables meet requirements and are fit for purpose, through quality planning, assurance and control.',
+        keyCompetencies: ['Quality planning', 'Quality assurance (process-focused)', 'Quality control (product-focused)', 'Continuous improvement'],
+        models: ['Quality Management Trilogy (Juran: Planning, Control, Improvement)', 'PDCA Cycle (Plan-Do-Check-Act / Deming)', 'Cost of Quality (Prevention, Appraisal, Internal Failure, External Failure)', 'Six Sigma (DMAIC: Define, Measure, Analyse, Improve, Control)', 'Quality Assurance vs Quality Control'],
+        keyIdeas: ['Quality = conformance to requirements AND fitness for purpose', 'Prevention is cheaper than correction', 'Quality assurance = are we following the right processes?', 'Quality control = does the product meet standards?', 'Cost of quality: prevention costs < failure costs', 'Customer satisfaction is the ultimate quality measure', 'Continuous improvement never ends']
+    },
+    'finance': {
+        title: 'Finance (CE 4.5.9)',
+        definition: 'The ability to estimate, plan, secure and manage the financial resources of the project.',
+        keyCompetencies: ['Cost estimating', 'Budgeting', 'Cash flow management', 'Financial reporting', 'Earned Value Management'],
+        models: ['Estimating Techniques (Analogous, Parametric, Bottom-up, Three-point)', 'Earned Value Management (EVM: PV, EV, AC → SV, CV → SPI, CPI)', 'Cost Breakdown Structure', 'Net Present Value (NPV)', 'Return on Investment (ROI)', 'Payback Period', 'S-Curve for cumulative costs'],
+        keyIdeas: ['Accuracy improves as project progresses (cone of uncertainty)', 'Contingency covers known unknowns; Management reserve covers unknown unknowns', 'EVM formulas: SV=EV-PV, CV=EV-AC, SPI=EV/PV, CPI=EV/AC', 'CPI < 1 means over budget; SPI < 1 means behind schedule', 'Cash flow timing matters as much as total budget', 'Benefits must exceed costs for viable project (positive NPV)', 'Financial reporting enables governance decisions']
+    },
+    'resources': {
+        title: 'Resources (CE 4.5.11)',
+        definition: 'The ability to identify, acquire and manage the resources (people, materials, equipment) needed to deliver the project.',
+        keyCompetencies: ['Resource planning', 'Resource acquisition and allocation', 'Resource levelling and smoothing', 'Capacity management', 'Resource release'],
+        models: ['Resource Breakdown Structure', 'Resource Histogram', 'Resource Levelling (extend timeline to avoid over-allocation)', 'Resource Smoothing (keep within float, maintain end date)', 'Skills Matrix', 'RACI for resource responsibilities'],
+        keyIdeas: ['Resource conflicts are common in matrix organisations', 'Resource levelling changes end date; smoothing keeps end date', 'Critical resources on critical path need careful management', 'Over-allocation leads to burnout and quality issues', 'Skills gaps require training or procurement', 'Early resource release reduces project costs', 'Resource availability affects schedule feasibility']
+    },
+    'stakeholders': {
+        title: 'Stakeholders (CE 4.5.12)',
+        definition: 'The ability to identify, analyse, engage and manage stakeholders to ensure their needs and expectations are appropriately addressed.',
+        keyCompetencies: ['Stakeholder identification', 'Stakeholder analysis', 'Engagement planning', 'Managing expectations', 'Communication with stakeholders'],
+        models: ['Stakeholder Register', 'Power/Interest Grid (Mendelow)', 'Stakeholder Engagement Assessment Matrix', 'Salience Model (Power, Legitimacy, Urgency)', 'Onion Diagram (layers of stakeholder proximity)', 'Communication Plan linked to stakeholder needs'],
+        keyIdeas: ['Stakeholders can make or break a project', 'Early identification prevents surprises', 'Engagement strategy depends on power and interest', 'Manage expectations proactively - under-promise, over-deliver', 'Stakeholder attitudes change over time - reassess regularly', 'Negative stakeholders need careful management', 'Benefits realisation requires stakeholder adoption']
+    }
+};
+
+// ===== MCQ FLASHCARD DATA =====
+const mcqQuestions = [
+    // STRATEGY
+    {topic:'strategy',q:'Which analysis tool examines Political, Economic, Social, Technological, Legal and Environmental factors?',options:['SWOT','PESTLE','Porter\'s Five Forces','Balanced Scorecard'],answer:1},
+    {topic:'strategy',q:'What is the primary purpose of a business case?',options:['To schedule project activities','To justify the investment by linking project to strategic need','To assign team roles','To manage risk'],answer:1},
+    {topic:'strategy',q:'In the Balanced Scorecard, which perspective focuses on learning and development?',options:['Financial','Customer','Internal Process','Learning & Growth'],answer:3},
+    {topic:'strategy',q:'Which matrix helps organisations decide between market penetration, market development, product development and diversification?',options:['BCG Matrix','Ansoff Matrix','SWOT Matrix','Eisenhower Matrix'],answer:1},
+    {topic:'strategy',q:'What cascades from organisational vision down to individual projects?',options:['Work packages','Strategic alignment','Risk appetite','Team charters'],answer:1},
+    {topic:'strategy',q:'Which of Porter\'s Five Forces relates to the bargaining power of customers?',options:['Threat of new entrants','Supplier power','Buyer power','Threat of substitutes'],answer:2},
+    {topic:'strategy',q:'Benefits realisation management ensures that:',options:['Projects finish on time','Strategic benefits are actually achieved after delivery','Risk registers are maintained','Resources are allocated efficiently'],answer:1},
+    {topic:'strategy',q:'Which statement best describes project success from a strategic perspective?',options:['Delivered on time and budget','Delivered the agreed scope','Delivered business value aligned to strategy','The team was satisfied'],answer:2},
+    // COMPLIANCE
+    {topic:'compliance',q:'Which ISO standard provides guidance on project management?',options:['ISO 9001','ISO 21500','ISO 14001','ISO 27001'],answer:1},
+    {topic:'compliance',q:'What is the difference between a mandatory standard and a voluntary standard?',options:['Mandatory are free, voluntary cost money','Mandatory are legally required, voluntary are best practice','Mandatory are international, voluntary are national','There is no difference'],answer:1},
+    {topic:'compliance',q:'Which regulation primarily governs data protection in the EU?',options:['ISO 31000','PRINCE2','GDPR','SOX'],answer:2},
+    {topic:'compliance',q:'If a project objective conflicts with a legal requirement, what should the project manager do?',options:['Prioritise the project objective','Seek a compromise','Comply with the legal requirement','Escalate to the sponsor'],answer:2},
+    {topic:'compliance',q:'Health and Safety legislation creates what type of obligation for project managers?',options:['Moral obligation only','Duty of care','Contractual obligation','Advisory recommendation'],answer:1},
+    {topic:'compliance',q:'Professional ethics in project management include all EXCEPT:',options:['Transparency','Maximising profit regardless of impact','Honesty','Responsibility'],answer:1},
+    {topic:'compliance',q:'Which ISO standard specifically addresses risk management?',options:['ISO 21500','ISO 9001','ISO 31000','ISO 14001'],answer:2},
+    {topic:'compliance',q:'Environmental compliance in projects is:',options:['Only relevant for construction projects','Increasingly important across all sectors','Optional if budget is tight','Only the client\'s responsibility'],answer:1},
+    // SELF-REFLECTION
+    {topic:'self-reflection',q:'The Johari Window has four quadrants. The "Blind Spot" represents:',options:['Things known to self but not others','Things not known to anyone','Things known to others but not to self','Things known to everyone'],answer:2},
+    {topic:'self-reflection',q:'In Kolb\'s Learning Cycle, what follows "Concrete Experience"?',options:['Active Experimentation','Abstract Conceptualisation','Reflective Observation','Planning'],answer:2},
+    {topic:'self-reflection',q:'The Eisenhower Matrix prioritises tasks based on:',options:['Cost and benefit','Risk and impact','Urgency and importance','Effort and value'],answer:2},
+    {topic:'self-reflection',q:'Which component of Emotional Intelligence involves understanding others\' feelings?',options:['Self-awareness','Self-regulation','Empathy','Motivation'],answer:2},
+    {topic:'self-reflection',q:'360-degree feedback is primarily used for:',options:['Performance appraisal only','Identifying blind spots in behaviour','Setting project milestones','Resource planning'],answer:1},
+    {topic:'self-reflection',q:'Which statement best describes reflective practice?',options:['Reviewing financial performance','Systematically thinking about actions to improve future performance','Setting SMART objectives','Delegating tasks effectively'],answer:1},
+    {topic:'self-reflection',q:'CPD stands for:',options:['Critical Path Diagram','Continuous Professional Development','Cost Performance Data','Change Process Document'],answer:1},
+    {topic:'self-reflection',q:'Stress management is important because:',options:['It eliminates all project risks','Sustained stress reduces decision-making quality and health','It increases project budget','Stakeholders require it'],answer:1},
+
+    // INTEGRITY
+    {topic:'integrity',q:'The Trust Equation includes all EXCEPT:',options:['Credibility','Reliability','Self-Orientation','Popularity'],answer:3},
+    {topic:'integrity',q:'What does personal reliability primarily mean?',options:['Being available 24/7','Following through on commitments','Never saying no','Always agreeing with stakeholders'],answer:1},
+    {topic:'integrity',q:'When facing an ethical dilemma, a project manager should:',options:['Always choose the cheapest option','Balance competing values using ethical frameworks','Ignore it and focus on delivery','Let someone else decide'],answer:1},
+    {topic:'integrity',q:'Transparency in project management means:',options:['Sharing all information with everyone','Being open and honest about project status and decisions','Revealing confidential information','Publishing all project documents'],answer:1},
+    // COMMUNICATION
+    {topic:'communication',q:'According to Mehrabian, what percentage of communication is conveyed through body language?',options:['7%','38%','55%','93%'],answer:2},
+    {topic:'communication',q:'Push communication is best described as:',options:['Information sent to specific recipients','Information placed where people can access it','Interactive two-way dialogue','Formal presentations only'],answer:0},
+    {topic:'communication',q:'Active listening involves:',options:['Waiting for your turn to speak','Fully concentrating, understanding, responding and remembering','Taking notes only','Asking closed questions'],answer:1},
+    {topic:'communication',q:'A Communication Plan should address:',options:['Only what to communicate','Who, What, When, How, and Why','Budget allocations only','Technical specifications'],answer:1},
+    {topic:'communication',q:'What percentage of a project manager\'s time is typically spent communicating?',options:['30%','50%','70%','90%'],answer:2},
+    {topic:'communication',q:'The Shannon-Weaver model identifies which factor that distorts messages?',options:['Feedback','Noise','Channel','Encoding'],answer:1},
+    {topic:'communication',q:'When communicating with senior stakeholders, you should:',options:['Provide maximum detail','Tailor message to their needs, focusing on impact and decisions needed','Use technical jargon to show competence','Only communicate good news'],answer:1},
+    {topic:'communication',q:'Pull communication is most appropriate when:',options:['Urgent action is needed','Information needs to be available for reference','Sensitive messages need delivering','Decisions must be made immediately'],answer:1},
+    // NEGOTIATION
+    {topic:'negotiation',q:'BATNA stands for:',options:['Best Approach To New Agreements','Best Alternative To a Negotiated Agreement','Basic Agreement Terms and Negotiations Approach','Bilateral Agreement Through Negotiation Actions'],answer:1},
+    {topic:'negotiation',q:'Harvard Principled Negotiation advises to:',options:['Take the hardest position possible','Focus on positions not interests','Separate people from the problem','Never compromise'],answer:2},
+    {topic:'negotiation',q:'ZOPA stands for:',options:['Zone of Personal Accountability','Zone of Possible Agreement','Zero Option Priority Assessment','Zone of Project Authority'],answer:1},
+    {topic:'negotiation',q:'Which Thomas-Kilmann mode seeks a solution that fully satisfies both parties?',options:['Competing','Compromising','Collaborating','Accommodating'],answer:2},
+    {topic:'negotiation',q:'What percentage of negotiation success comes from preparation?',options:['20%','50%','80%','100%'],answer:2},
+    {topic:'negotiation',q:'In negotiation, interests differ from positions because:',options:['Interests are what you really need; positions are what you initially demand','They are the same thing','Interests are always financial','Positions are more important'],answer:0},
+    // RESULTS ORIENTATION
+    {topic:'results',q:'SMART objectives must be all of the following EXCEPT:',options:['Specific','Measurable','Ambitious','Time-bound'],answer:2},
+    {topic:'results',q:'MoSCoW stands for:',options:['Must, Should, Could, Won\'t','Most, Some, Can, Won\'t','Mandatory, Standard, Conditional, Wanted','Major, Standard, Critical, Work'],answer:0},
+    {topic:'results',q:'The PDCA cycle stands for:',options:['Plan, Deliver, Check, Assess','Plan, Do, Check, Act','Prepare, Design, Control, Approve','Plan, Develop, Complete, Archive'],answer:1},
+    {topic:'results',q:'Decision-making in projects should be:',options:['Delayed as long as possible to gather more information','Timely - delayed decisions have costs','Always made by the project manager alone','Based only on quantitative data'],answer:1},
+    {topic:'results',q:'The difference between outputs and outcomes is:',options:['There is no difference','Outputs are what you deliver; outcomes are the benefits achieved','Outputs are strategic; outcomes are tactical','Outputs are long-term; outcomes are short-term'],answer:1},
+
+    // PROJECT DESIGN
+    {topic:'design',q:'A business case typically includes all EXCEPT:',options:['Strategic fit','Detailed task schedule','Benefits','Options appraisal'],answer:1},
+    {topic:'design',q:'Which project lifecycle is best suited for projects with high uncertainty?',options:['Waterfall','V-Model','Agile','Linear'],answer:2},
+    {topic:'design',q:'A Gate Review is used to:',options:['Control physical access to the project office','Assess whether the project should continue at key decision points','Review team performance','Approve invoices'],answer:1},
+    {topic:'design',q:'Success criteria should be:',options:['Defined at project closure','Agreed upfront with stakeholders','Left flexible throughout','Only financial'],answer:1},
+    {topic:'design',q:'Project governance structure should:',options:['Be the same for all projects','Match project complexity','Be decided by the team','Only involve the sponsor'],answer:1},
+    // REQUIREMENTS & OBJECTIVES
+    {topic:'requirements',q:'The Kano Model categorises requirements as:',options:['High, Medium, Low priority','Basic, Performance, Excitement','Functional and Non-functional','Essential and Optional'],answer:1},
+    {topic:'requirements',q:'A User Story follows the format:',options:['If... Then... Else...','As a... I want... So that...','Given... When... Then...','Requirement... Rationale... Priority...'],answer:1},
+    {topic:'requirements',q:'Requirements traceability ensures:',options:['All team members are traced','Each requirement can be tracked from origin to deliverable','Budget is traceable to cost centres','Communications are documented'],answer:1},
+    {topic:'requirements',q:'Non-functional requirements include:',options:['What the system should do','Performance, security, usability standards','User stories','Business objectives'],answer:1},
+    {topic:'requirements',q:'Scope creep is often caused by:',options:['Clear requirements','Ambiguous or poorly defined requirements','Too many stakeholders','Agile methodologies'],answer:1},
+    // SCOPE
+    {topic:'scope',q:'The WBS (Work Breakdown Structure) is:',options:['A schedule of activities','A deliverable-oriented decomposition of project scope','An organisational chart','A risk register'],answer:1},
+    {topic:'scope',q:'The 100% Rule in WBS means:',options:['100% of the budget must be allocated','The WBS must capture all the work required','All team must work 100% on the project','Quality must be 100%'],answer:1},
+    {topic:'scope',q:'Gold plating refers to:',options:['Exceeding budget','Adding unrequested features or extras','Using premium materials','Achieving exceptional quality'],answer:1},
+    {topic:'scope',q:'A scope statement should include:',options:['Inclusions, exclusions, assumptions, constraints','Only what is included','Detailed schedule','Resource names'],answer:0},
+    {topic:'scope',q:'Configuration management primarily:',options:['Manages team configuration','Tracks and controls versions of deliverables','Configures software','Sets up project office'],answer:1},
+    // PROCUREMENT
+    {topic:'procurement',q:'Which contract type places most risk on the buyer?',options:['Fixed Price','Cost Plus','Lump Sum','Fixed Price Incentive'],answer:1},
+    {topic:'procurement',q:'The Kraljic Matrix classifies purchases by:',options:['Cost and quality','Supply risk and profit impact','Urgency and importance','Volume and frequency'],answer:1},
+    {topic:'procurement',q:'A make-or-buy decision considers:',options:['Only cost','Capability, capacity, cost and control','Only availability','Team preference'],answer:1},
+    {topic:'procurement',q:'Early supplier involvement can:',options:['Only increase costs','Improve outcomes through specialist expertise in design','Reduce project manager authority','Complicate governance'],answer:1},
+    // PLAN & CONTROL
+    {topic:'plan-control',q:'In EVM, if SPI = 0.8, the project is:',options:['20% ahead of schedule','On schedule','20% behind schedule','80% complete'],answer:2},
+    {topic:'plan-control',q:'Earned Value (EV) represents:',options:['Budget for work planned','Actual cost of work done','Budgeted cost of work performed','Total project budget'],answer:2},
+    {topic:'plan-control',q:'CPI = EV / AC. If CPI = 1.2, the project is:',options:['20% over budget','On budget','20% under budget (efficient)','80% complete'],answer:2},
+    {topic:'plan-control',q:'Rolling Wave Planning means:',options:['Planning the entire project in detail upfront','Planning near-term work in detail and future work at higher level','Only planning one week ahead','Re-planning after every milestone'],answer:1},
+    {topic:'plan-control',q:'A tolerance is:',options:['The acceptable variation from plan before escalation is required','A measure of team patience','The project buffer','An acceptance criterion'],answer:0},
+    {topic:'plan-control',q:'Schedule Variance (SV) is calculated as:',options:['AC - PV','EV - AC','EV - PV','PV - EV'],answer:2},
+
+    // RISK & OPPORTUNITY
+    {topic:'risk',q:'Risk response strategies for THREATS include all EXCEPT:',options:['Avoid','Transfer','Exploit','Mitigate'],answer:2},
+    {topic:'risk',q:'Risk appetite refers to:',options:['How much risk the organisation is willing to accept','The probability of a risk occurring','The impact of a risk','The number of risks identified'],answer:0},
+    {topic:'risk',q:'A secondary risk is:',options:['A low-priority risk','A risk created by implementing a risk response','The second risk identified','A risk in the second phase'],answer:1},
+    {topic:'risk',q:'Expected Monetary Value (EMV) is calculated as:',options:['Impact × Cost','Probability × Impact','Budget × Risk Factor','Contingency × Duration'],answer:1},
+    {topic:'risk',q:'Risk proximity refers to:',options:['How close the risk is to the project manager','When the risk might occur','The likelihood of the risk','The physical location of the risk'],answer:1},
+    {topic:'risk',q:'Which risk response strategy for opportunities involves sharing the upside with a third party?',options:['Exploit','Enhance','Share','Accept'],answer:2},
+    {topic:'risk',q:'Residual risk is:',options:['Risk that has already occurred','Risk remaining after responses are implemented','Risk that has been transferred','The initial identified risk'],answer:1},
+    {topic:'risk',q:'A Probability-Impact matrix is used to:',options:['Calculate project costs','Prioritise risks by severity','Schedule activities','Allocate resources'],answer:1},
+    // CHANGE & TRANSFORMATION
+    {topic:'change',q:'Kotter\'s first step in leading change is:',options:['Form a coalition','Create a vision','Establish a sense of urgency','Empower action'],answer:2},
+    {topic:'change',q:'Lewin\'s Change Model has three phases:',options:['Plan, Do, Review','Unfreeze, Change, Refreeze','Start, Execute, Close','Assess, Implement, Sustain'],answer:1},
+    {topic:'change',q:'ADKAR stands for:',options:['Awareness, Desire, Knowledge, Ability, Reinforcement','Assess, Design, Know, Apply, Review','Align, Deliver, Keep, Achieve, Report','Analyse, Develop, Know, Act, Reflect'],answer:0},
+    {topic:'change',q:'The Change Curve shows people typically move through:',options:['Planning, execution, closure','Denial, resistance, exploration, commitment','Start, middle, end','Forming, storming, norming'],answer:1},
+    {topic:'change',q:'The #1 enabler of successful change is:',options:['Budget','Technology','Communication','Legislation'],answer:2},
+    {topic:'change',q:'Quick wins in change management are important because they:',options:['Save money','Build momentum and credibility','Are easy to measure','Satisfy auditors'],answer:1},
+    {topic:'change',q:'Resistance to change is:',options:['Always negative and should be eliminated','Natural and should be understood and addressed','A sign the change is wrong','Only found in senior managers'],answer:1},
+    {topic:'change',q:'Senior sponsorship in change is critical because:',options:['Sponsors control the budget','It signals organisational commitment and authority','Sponsors write the business case','It is a legal requirement'],answer:1}
+];
+
+// ===== SAQ FLASHCARD DATA =====
+const saqQuestions = [
+    // GOVERNANCE
+    {topic:'governance',q:'Explain the purpose and key elements of project governance.',bullets:['Governance provides the framework for decision-making, oversight and accountability in projects','Key elements include: project board/steering committee, defined roles (sponsor, PM, team), reporting structure, escalation paths, and stage gates','The project sponsor is the single point of accountability representing business interests','Governance must be proportionate to project size, complexity and risk','Effective governance enables timely decisions, manages risk, ensures alignment to strategy, and provides assurance to stakeholders'],example:'Project governance establishes the framework of authority, accountability, and decision-making to direct and control the project. It typically operates through a project board or steering committee chaired by the sponsor, who is accountable for business case delivery. Key elements include clearly defined roles and responsibilities (using RACI), escalation procedures for issues exceeding tolerance, stage-gate reviews for go/no-go decisions, and regular reporting mechanisms. For example, in an IT transformation programme, the governance board met monthly to review progress against tolerance, approved change requests above £50k, and conducted formal gate reviews before each phase transition. Governance should be proportionate—a small internal project needs lighter governance than a multi-million pound external delivery.'},
+    {topic:'governance',q:'Describe the role of a PMO and its different types.',bullets:['PMO = Project/Programme Management Office - provides support, standards and governance','Supportive PMO: provides templates, training and advice but PM retains authority','Controlling PMO: requires compliance with standards, methodologies and reporting','Directive PMO: directly manages projects, PMs report to PMO','PMO functions include: resource management, reporting consolidation, methodology ownership, lessons learned repository, and portfolio prioritisation'],example:'A Project Management Office (PMO) provides centralised support, standards, and governance for project delivery. There are three main types: a Supportive PMO acts as a consultancy, providing templates, tools, and training while project managers retain full authority. A Controlling PMO requires compliance with defined standards, methodologies, and reporting formats. A Directive PMO directly manages projects with PMs reporting into the PMO structure. In practice, a large engineering firm established a Controlling PMO that maintained the methodology, consolidated monthly reporting across 40+ projects, managed the resource pool, maintained the lessons learned database, and supported portfolio prioritisation. The PMO improved delivery predictability from 45% to 78% on-time delivery within 18 months by standardising planning and introducing consistent stage-gate reviews.'},
+    {topic:'governance',q:'How does a RACI matrix support effective project governance?',bullets:['RACI = Responsible (does the work), Accountable (approves/owns), Consulted (provides input), Informed (kept updated)','Only ONE person should be Accountable for each task/decision to avoid confusion','Prevents duplication of effort and ensures nothing falls between gaps','Links organisational structure to deliverables and decisions','Should be agreed early and communicated to all stakeholders, reviewed when changes occur'],example:'A RACI matrix clarifies roles by mapping activities against stakeholders using four categories: Responsible (performs the work), Accountable (single point of ownership who approves), Consulted (provides input before decision), and Informed (notified after decision). The critical rule is having only one "A" per row to ensure clear ownership. For example, in a product launch project, the RACI showed marketing was Responsible for campaign development, the Product Director was Accountable, Legal was Consulted for compliance review, and Sales were Informed of launch plans. This prevented the previous confusion where three departments all thought they owned messaging decisions. The matrix was displayed in the project war room and reviewed at each stage gate to accommodate organisational changes.'},
+    // POWER & INTEREST
+    {topic:'power',q:'Explain how the Power/Interest Grid helps manage stakeholders.',bullets:['The grid maps stakeholders on two axes: power (ability to influence) and interest (level of concern about the project)','High Power/High Interest: Manage Closely - key players, involve in decisions','High Power/Low Interest: Keep Satisfied - could become blockers if ignored','Low Power/High Interest: Keep Informed - advocates and supporters','Low Power/Low Interest: Monitor - minimal effort required, may change position over time'],example:'The Power/Interest Grid (Mendelow\'s Matrix) is a stakeholder analysis tool mapping individuals on two axes: their power to influence the project and their level of interest in it. This creates four quadrants with distinct strategies. High Power/High Interest stakeholders (e.g., project sponsor, key client) are managed closely through regular face-to-face engagement and involvement in decisions. High Power/Low Interest stakeholders (e.g., finance director) are kept satisfied with periodic updates ensuring they don\'t become blockers. Low Power/High Interest stakeholders (e.g., end users) are kept informed as they can become advocates or resistors. Low Power/Low Interest (e.g., general public) are monitored. For example, when delivering a hospital IT system, the clinical director (high power/high interest) was engaged weekly, the CFO (high power/low interest) received monthly financial summaries, and ward nurses (low power/high interest) received regular newsletters and demonstrations.'},
+    {topic:'power',q:'Describe French and Raven\'s sources of power and their relevance to project management.',bullets:['Legitimate Power: formal authority from position/role (e.g., sponsor approving budget)','Reward Power: ability to give rewards (e.g., bonuses, recognition, assignments)','Coercive Power: ability to punish (e.g., poor reviews, removal from project) - least sustainable','Expert Power: knowledge and skills that others value (e.g., technical specialist)','Referent Power: personal charisma, respect, admiration that others want to follow','Project managers often rely on Expert and Referent power as they frequently lack formal Legitimate power over team members in matrix organisations'],example:'French and Raven identified six sources of power relevant to project management. Legitimate power comes from formal position—a sponsor can approve budget by authority. Reward power enables giving valued outcomes—a PM recommending a team member for promotion. Coercive power uses fear of consequences—threatening poor performance reviews (least effective long-term). Expert power comes from recognised knowledge—a cybersecurity specialist whose advice is followed because of their expertise. Referent power derives from personal qualities—a PM whose integrity and charisma inspire followership. Informational power comes from access to valuable information. In matrix organisations, PMs typically lack legitimate power over team members who report to functional managers. Therefore, effective PMs build expert power through competence, referent power through relationships, and informational power through being the communication hub. A PM who relies solely on coercive power will quickly lose team commitment.'},
+
+    // CULTURE & VALUES
+    {topic:'culture',q:'Explain Hofstede\'s Cultural Dimensions and their impact on project management.',bullets:['Power Distance: degree of acceptance of unequal power distribution - affects decision-making and escalation','Individualism vs Collectivism: impacts team dynamics, reward systems and conflict approaches','Masculinity vs Femininity: affects work-life balance expectations and competitive vs collaborative cultures','Uncertainty Avoidance: influences risk appetite, planning detail and tolerance of ambiguity','Long-term vs Short-term Orientation: affects investment decisions and benefit timelines'],example:'Hofstede\'s Cultural Dimensions framework identifies six dimensions that vary across national cultures, directly impacting project management. Power Distance affects how teams communicate—in high PD cultures (e.g., Japan), team members may not challenge a PM\'s decision, requiring the PM to actively seek input. Individualism/Collectivism affects motivation—individual bonuses work in the US but team rewards suit collectivist cultures like China. Uncertainty Avoidance influences planning—German teams may demand detailed plans while Swedish teams tolerate ambiguity and prefer agile approaches. For example, managing a global IT rollout across UK (low PD, individualist), Japan (high PD, collectivist), and Brazil (high PD, collectivist) required adapting communication from open debate in UK workshops to structured one-to-one sessions in Japan and relationship-building social events in Brazil. The PM adapted governance reporting frequency from monthly (UK) to weekly (Japan) to match uncertainty avoidance preferences.'},
+    {topic:'culture',q:'Describe Schein\'s Three Levels of Culture and how a PM can assess project culture.',bullets:['Level 1 - Artefacts: visible elements like office layout, dress code, language, ceremonies - easy to observe but hard to interpret','Level 2 - Espoused Values: stated strategies, goals, philosophies - what the organisation says it values','Level 3 - Basic Assumptions: unconscious, taken-for-granted beliefs - the deepest level, hardest to change','Gaps between espoused values and actual behaviour reveal cultural dysfunction','PMs assess culture through observation, interviews, reviewing documents, and noting what gets rewarded vs punished'],example:'Schein\'s model describes culture at three levels: Artefacts (visible structures—open plan offices, casual dress, daily stand-ups), Espoused Values (stated beliefs—"we value innovation" on posters), and Basic Assumptions (unconscious beliefs—"failure is punished" despite innovation rhetoric). The gap between levels 2 and 3 reveals dysfunction. A PM joining a new organisation assessed culture by observing: meetings started late (artefact suggesting time is flexible), the values statement promoted "empowerment" (espoused), yet every decision required director sign-off (assumption that control is needed). This insight meant the PM adjusted their approach—rather than expecting delegated authority, they built relationships with directors and scheduled pre-meetings to get informal approval. Understanding the real culture (assumptions) rather than the stated culture (values) prevented frustration and enabled effective delivery within the actual operating norms.'},
+    // RELATIONSHIPS & ENGAGEMENT
+    {topic:'relationships',q:'How can a project manager build and maintain effective stakeholder relationships?',bullets:['Invest time in understanding individual motivations, concerns and communication preferences','Build trust through consistency, competence, follow-through on commitments and transparency','Use formal and informal interactions - coffee conversations are as important as steering committees','Tailor engagement approach to each stakeholder using analysis tools like Power/Interest grid','Maintain relationships proactively - don\'t only engage when you need something or have problems'],example:'Effective stakeholder relationships are built through deliberate, consistent effort. First, the PM invests time understanding each stakeholder\'s motivations—a finance director cares about ROI while an operations manager cares about disruption. Second, trust is built through competence (delivering what you promise), consistency (behaving predictably), and transparency (sharing bad news early). For example, a PM delivering a CRM implementation scheduled monthly formal steering committees but also held informal monthly coffees with each board member, created a stakeholder map updated quarterly, and sent personalised updates addressing each stakeholder\'s specific concerns. When a significant delay occurred, the PM informed the sponsor immediately rather than waiting for the board meeting—this transparency actually strengthened trust. The PM also facilitated introductions between stakeholders who could help each other, creating reciprocal goodwill. Relationship maintenance continued post-project through benefits review meetings.'},
+    {topic:'relationships',q:'Explain the Stakeholder Engagement Assessment Matrix and how it guides engagement planning.',bullets:['Maps each stakeholder\'s CURRENT engagement level against DESIRED level','Levels: Unaware, Resistant, Neutral, Supportive, Leading','The gap between current and desired indicates the engagement effort required','Informs specific actions to move stakeholders toward desired engagement','Should be reviewed regularly as engagement levels shift throughout the project lifecycle'],example:'The Stakeholder Engagement Assessment Matrix plots each stakeholder\'s current engagement level (C) against the desired level (D) across five states: Unaware (don\'t know about the project), Resistant (aware but opposed), Neutral (aware but neither supportive nor resistant), Supportive (aware and in favour), and Leading (actively championing). For example, in a digital transformation project: the IT Director was Currently Supportive, Desired Leading—action: involve in steering group and ask to present benefits to peers. The Operations Manager was Currently Resistant, Desired Supportive—action: one-to-one sessions addressing concerns, involve in solution design, demonstrate how system reduces their team\'s manual workload. End Users were Currently Unaware, Desired Supportive—action: awareness campaign, demonstrations, champions network. The matrix was reviewed monthly, and when the Finance Director shifted from Neutral to Resistant after a cost overrun, immediate action was taken to present a revised business case showing long-term savings.'},
+
+    // LEADERSHIP
+    {topic:'leadership',q:'Compare Situational Leadership styles and explain when each is appropriate.',bullets:['Directing (S1): high task, low relationship - for low competence/high commitment (new team members)','Coaching (S2): high task, high relationship - for some competence/low commitment (developing but frustrated)','Supporting (S3): low task, high relationship - for high competence/variable commitment (capable but uncertain)','Delegating (S4): low task, low relationship - for high competence/high commitment (experienced self-starters)','The key insight is matching style to follower maturity/readiness - no single style works for all situations'],example:'Hersey and Blanchard\'s Situational Leadership model states that effective leaders adapt their style to followers\' readiness (competence + commitment). S1 Directing provides clear instructions with close supervision—appropriate for a graduate joining their first project who is enthusiastic but lacks skills. S2 Coaching combines direction with explanation and encouragement—suitable for a team member six months in who has some skills but is frustrated by complexity. S3 Supporting offers encouragement and shared decision-making—right for an experienced professional who knows the work but lacks confidence in a new domain. S4 Delegating hands over responsibility—appropriate for a senior specialist who is both capable and motivated. For example, a PM leading a mixed team used S1 with a new analyst (daily task briefings), S2 with a junior developer (pairing sessions explaining rationale), S3 with an experienced BA in a new sector (weekly check-ins, asking their opinion), and S4 with a senior architect (monthly catch-ups, full autonomy). The key is diagnosing readiness correctly and adjusting as people develop.'},
+    {topic:'leadership',q:'Explain the difference between leadership and management in a project context.',bullets:['Management focuses on planning, organising, controlling - doing things right (efficiency)','Leadership focuses on vision, inspiration, motivation - doing the right things (effectiveness)','Projects need both: management for delivery discipline, leadership for engagement and change','Good PMs flex between management and leadership depending on situation','Transactional (management) ensures compliance; Transformational (leadership) inspires beyond expectations'],example:'Management and leadership are complementary but distinct. Management is about planning, organising, staffing, and controlling—creating order, consistency, and predictability. Leadership is about establishing direction, aligning people, motivating, and inspiring—producing change and movement. In projects, management ensures the Gantt chart is updated, risks are logged, and budgets tracked. Leadership creates a compelling vision that makes the team want to deliver, resolves conflicts through influence, and navigates organisational politics. For example, a PM delivering a hospital system rebuild demonstrated management by maintaining a detailed integrated plan with 500+ activities, tracking EVM weekly, and running formal change control. They demonstrated leadership by crafting a vision ("zero patient data errors"), personally visiting wards to understand clinician frustrations, publicly recognising team contributions, and coaching a struggling developer rather than replacing them. The project succeeded because management kept it on track while leadership kept people motivated through an 18-month marathon.'},
+    // TEAMWORK
+    {topic:'teamwork',q:'Describe Tuckman\'s model of team development and the PM\'s role at each stage.',bullets:['Forming: team comes together, polite, uncertain - PM provides clear direction, structure and purpose','Storming: conflict emerges, power struggles, challenge authority - PM facilitates resolution, maintains focus on goals','Norming: team establishes ways of working, cohesion builds - PM encourages collaboration, steps back slightly','Performing: team is autonomous, productive, self-managing - PM delegates, removes obstacles, celebrates success','Adjourning: project ends, team disbands - PM captures lessons, recognises contributions, manages transition'],example:'Tuckman\'s model describes five stages of team development, each requiring different PM behaviours. In Forming, a new cross-functional team was uncertain about roles and expectations—the PM held a kick-off workshop, established a team charter, defined roles using RACI, and set clear short-term objectives. During Storming, two senior developers clashed over architecture approach—the PM facilitated a structured debate, established decision criteria, and helped the team reach consensus while acknowledging both viewpoints. In Norming, the team organically developed daily stand-ups and peer code reviews—the PM reinforced these behaviours and stepped back from directing. At Performing, the team self-organised sprint planning and proactively managed dependencies—the PM focused on removing external obstacles and stakeholder management. During Adjourning, the PM held a retrospective capturing lessons learned, wrote personal references, organised a team celebration, and ensured knowledge transfer to the operational team. Teams can regress—when a key member left during Performing, the team briefly returned to Storming before re-norming.'},
+    {topic:'teamwork',q:'Explain Belbin\'s Team Roles and why team diversity matters.',bullets:['Nine roles in three categories: Action (Shaper, Implementer, Completer-Finisher), People (Coordinator, Teamworker, Resource Investigator), Thinking (Plant, Monitor-Evaluator, Specialist)','Each person has preferred roles, manageable roles, and least preferred roles','Balanced teams with diverse roles outperform teams of similar types','Knowing team roles helps allocate tasks, understand conflict sources, and fill gaps','A team of all Plants (creative thinkers) will generate ideas but never implement them'],example:'Belbin identified nine team roles across three categories. Action-oriented roles (Shaper drives progress, Implementer turns ideas into plans, Completer-Finisher ensures quality). People-oriented roles (Coordinator delegates effectively, Teamworker builds harmony, Resource Investigator networks externally). Thinking roles (Plant generates creative ideas, Monitor-Evaluator analyses options objectively, Specialist provides deep expertise). A PM used Belbin assessments when forming a project team and discovered the group was dominated by Shapers and Plants—lots of energy and ideas but poor follow-through. By adding a Completer-Finisher and Implementer, delivery improved dramatically. The PM also used role awareness to manage conflict—recognising that tension between the Shaper (pushing deadlines) and the Monitor-Evaluator (wanting more analysis) was productive role-based tension, not personal conflict. Understanding that no one role is "better" helps teams value diversity and allocate work to natural strengths.'},
+
+    // CONFLICT & CRISIS
+    {topic:'conflict',q:'Explain the Thomas-Kilmann Conflict Modes and when each is appropriate.',bullets:['Competing (assertive, uncooperative): use for urgent decisions, safety issues, unpopular but necessary actions','Collaborating (assertive, cooperative): use when both parties\' concerns are too important to compromise, time available','Compromising (moderate assertive, moderate cooperative): use when goals are moderately important, temporary settlement needed','Avoiding (unassertive, uncooperative): use when issue is trivial, no chance of winning, or to let people cool down','Accommodating (unassertive, cooperative): use when you are wrong, issue matters more to others, or to build goodwill'],example:'Thomas-Kilmann identifies five conflict handling modes based on assertiveness and cooperativeness. Competing is appropriate when safety is at risk—a PM insisted on halting construction when structural concerns emerged despite schedule pressure. Collaborating works when creative solutions exist—two departments both needed the same server capacity, and by exploring needs, a cloud-based solution served both better than either original request. Compromising works for time-pressured decisions—splitting a contested budget 60/40 based on relative project criticality. Avoiding is appropriate when emotions are high—postponing a heated design debate until the next morning when participants could think rationally. Accommodating builds relationships—accepting a stakeholder\'s preferred reporting format even though it required extra effort, because the relationship mattered more than efficiency. The key insight is that no single mode is always correct—effective PMs diagnose the situation (urgency, importance, relationship value) and consciously select the appropriate approach rather than defaulting to their natural preference.'},
+    {topic:'conflict',q:'Describe how to manage a project crisis effectively.',bullets:['Immediate response: assess the situation factually, establish what is known and unknown, stabilise','Communication: inform sponsor and key stakeholders immediately with facts and planned response','Decision-making: convene crisis team, make rapid decisions with available information, accept imperfect data','Action: implement containment/recovery actions, assign clear ownership, set review checkpoints','Recovery: conduct post-crisis review, capture lessons learned, update risk register, restore confidence'],example:'Crisis management requires rapid, structured response. When a critical supplier went into administration mid-project threatening a 3-month delay to a regulatory deadline, the PM followed a crisis framework. Immediate response: convened emergency steering group within 2 hours, presented factual assessment (what was contracted, what was delivered, what remained, deadline implications). Communication: transparent briefing to sponsor within 1 hour, stakeholder update within 4 hours acknowledging the issue and outlining response plan. Decision-making: crisis team evaluated three options within 48 hours—alternative supplier (6 weeks to onboard), in-house delivery (possible but risky), descope (unacceptable for compliance). Action: selected split approach—brought critical path work in-house immediately while onboarding alternative supplier for remaining scope. Assigned dedicated lead for each workstream with daily progress reporting. Recovery: delivered 2 weeks late (within regulatory grace period), conducted lessons learned identifying earlier warning signs that were missed, updated risk register to include supplier financial health monitoring, and added contract clauses for future procurements.'},
+    // RESOURCEFULNESS
+    {topic:'resourcefulness',q:'Explain De Bono\'s Six Thinking Hats and how they support creative problem-solving in projects.',bullets:['White Hat: focus on available data and facts - what do we know? what information is missing?','Red Hat: express feelings and intuition without justification - gut reactions and emotions','Black Hat: critical judgement - risks, dangers, what could go wrong (devil\'s advocate)','Yellow Hat: optimistic thinking - benefits, value, what could go right','Green Hat: creative thinking - alternatives, new ideas, possibilities','Blue Hat: process control - manages the thinking process, summarises, decides next steps'],example:'De Bono\'s Six Thinking Hats enables structured creative problem-solving by directing the team to think in one mode at a time, preventing dominant personalities from controlling discussion. When a project faced a seemingly impossible deadline reduction from 12 to 8 months, the PM facilitated a Hats session. White Hat: established facts—current schedule, resource availability, dependencies, contractual constraints. Red Hat: team expressed frustration and anxiety but also excitement about the challenge. Black Hat: identified risks of fast-tracking—quality issues, burnout, rework cycles. Yellow Hat: explored benefits—first-to-market advantage, team capability building, client relationship strengthening. Green Hat: generated creative options—parallel prototyping, reuse of components from previous project, offshore team for documentation, automated testing to reduce QA time, client co-location to eliminate approval delays. Blue Hat: PM summarised, prioritised ideas by feasibility and impact, and created action plan. The result was an innovative approach combining automation, reuse, and co-location that achieved 9.5 months—close enough for client acceptance.'},
+    {topic:'resourcefulness',q:'How can Root Cause Analysis techniques be applied to solve project problems?',bullets:['5 Whys: repeatedly asking "why" to drill down from symptom to root cause (typically 5 levels deep)','Ishikawa/Fishbone diagram: categorises causes into groups (People, Process, Technology, Environment, Materials, Measurement)','Pareto Analysis (80/20 rule): identifies the vital few causes responsible for most problems','Distinguishes symptoms from causes - treating symptoms means problems recur','Should lead to preventive action, not just corrective action - update processes/standards'],example:'Root Cause Analysis prevents recurring problems by addressing causes rather than symptoms. The 5 Whys technique is deceptively powerful. Problem: project deliverable rejected by client. Why? Requirements didn\'t match expectations. Why? Requirements were ambiguous. Why? Business analyst didn\'t validate with end users. Why? No user access was arranged. Why? Stakeholder engagement plan didn\'t identify end users as key stakeholders. Root cause: inadequate stakeholder identification process. Fix: enhanced stakeholder identification checklist at project initiation. An Ishikawa diagram was used when a manufacturing project had repeated quality failures. Categories revealed: People (insufficient training), Process (no peer review step), Technology (outdated testing tools), Materials (supplier quality declining). Pareto analysis showed 80% of defects came from two causes—missing peer review and inadequate training. Addressing just these two causes dramatically improved quality. The PM updated the project quality plan AND the organisational methodology to prevent recurrence on future projects—moving from corrective to preventive action.'},
+
+    // TIME
+    {topic:'time',q:'Explain the Critical Path Method and its importance in project scheduling.',bullets:['Critical Path = longest sequence of dependent activities through the network = minimum project duration','Activities on the critical path have ZERO float - any delay extends the project end date','Float (slack) = time a non-critical activity can slip without affecting project end date','Forward pass calculates earliest start/finish; backward pass calculates latest start/finish','Float = Late Start - Early Start (or Late Finish - Early Finish)'],example:'The Critical Path Method (CPM) identifies the longest path through a project network diagram, determining the minimum possible duration. Activities on this path have zero float—any delay directly extends the project end date. For example, in a building project with paths: Design(4w)→Foundation(6w)→Structure(8w)→Fit-out(4w) = 22 weeks, and Design(4w)→Procurement(3w)→Fit-out(4w) = 11 weeks. The critical path is 22 weeks through Foundation and Structure. Procurement has 11 weeks of float (22-11). The PM focuses management attention on critical path activities—ensuring foundation contractors are confirmed early, monitoring structure progress daily, and having contingency plans if weather delays foundation work. When the client requested a 2-week schedule reduction, the PM used crashing (adding resources to Structure, reducing it to 6 weeks at extra cost) rather than fast-tracking (which would have required starting Structure before Foundation was complete—impossible for construction). Understanding CPM enables informed trade-off decisions.'},
+    {topic:'time',q:'Compare schedule compression techniques: crashing and fast-tracking.',bullets:['Crashing: adding resources to critical path activities to reduce duration - increases COST','Fast-tracking: performing sequential activities in parallel - increases RISK','Crashing only works where additional resources can actually reduce duration (not all tasks are "crashable")','Fast-tracking only works where activities have discretionary (not mandatory) dependencies','Both techniques only apply to critical path activities - compressing non-critical activities doesn\'t help'],example:'When a software project\'s critical path showed delivery 6 weeks late, two compression techniques were evaluated. Crashing: adding two more developers to the 12-week development phase could reduce it to 9 weeks but would cost £45k extra and require 2 weeks onboarding (net saving: 1 week for £45k—poor value). Adding a second testing environment could reduce the 8-week test phase to 5 weeks for £20k (good value—3 weeks saved). Fast-tracking: starting user acceptance testing while system testing was still completing the final module (normally sequential) could save 2 weeks but risked finding integration defects late. Starting training material development parallel to final development (normally waiting for frozen requirements) could save 3 weeks with moderate risk of rework. The PM selected: crash testing environment (3 weeks, £20k, low risk) plus fast-track training materials (3 weeks, moderate risk with mitigation of versioned drafts). Total: 6 weeks recovered within acceptable cost and risk parameters. Key principle: only critical path compression helps; the PM verified each option targeted critical activities.'},
+    // ORGANISATION & INFORMATION
+    {topic:'organisation',q:'Explain the purpose and benefits of a PMIS (Project Management Information System).',bullets:['PMIS is the integrated system of tools and techniques used to collect, store and distribute project information','Provides single source of truth - prevents conflicting versions of plans, reports and documents','Supports planning (scheduling tools), execution (collaboration), monitoring (dashboards), and control (change logs)','Enables consistent reporting across projects and programmes for portfolio governance','Should be accessible, secure, and proportionate to project complexity'],example:'A Project Management Information System (PMIS) provides the integrated toolset for managing project information throughout the lifecycle. It serves as the single source of truth, preventing the chaos of multiple spreadsheet versions circulating via email. A well-implemented PMIS for a £5M programme included: planning tools (MS Project for scheduling, resource histograms), document management (SharePoint with version control and access permissions), collaboration (Teams channels organised by workstream), monitoring (Power BI dashboards showing EVM metrics, risk heat maps, milestone tracking), and control (digital change request workflow with audit trail). Benefits realised included: 60% reduction in time preparing board reports (automated from live data), zero instances of decisions made on outdated information, full audit trail for regulatory compliance, and consistent reporting enabling meaningful cross-project portfolio comparisons. The PM ensured the system was proportionate—the same organisation used a simple shared drive and weekly email update for projects under £100k. Key success factor: the PMIS must be maintained and used consistently—a brilliant system nobody updates is worthless.'},
+    {topic:'organisation',q:'What is configuration management and why is it important in projects?',bullets:['Configuration management identifies, tracks and controls versions of project deliverables and documents','Ensures everyone works from the correct, approved version (configuration item)','Provides audit trail of what changed, when, why, and who approved it','Prevents unauthorised changes to baselined deliverables','Key processes: identification (what to control), control (change process), status accounting (tracking), verification (auditing correctness)'],example:'Configuration management (CM) ensures that project deliverables are identified, controlled, and traceable throughout their lifecycle. It answers: "Are we all working from the same version?" In a software development project, CM covered: source code (Git with branching strategy—feature branches, release branches, main), documents (SharePoint with mandatory check-in/check-out, version numbers following Major.Minor convention), infrastructure configurations (as code, version-controlled), and test environments (documented build configurations). When a production defect occurred, CM enabled the team to identify exactly which code version was deployed, trace back to the change that introduced the defect, identify which test environment had been used, and determine why the defect wasn\'t caught (test environment was version 2.3 while production was 2.4). Without CM, this diagnosis would have been impossible. The CM process included: Configuration Identification (register of all controlled items), Change Control (formal approval before baselined items change), Status Accounting (dashboard showing current version of all items), and Configuration Verification (periodic audits confirming actual matches records).'},
+
+    // QUALITY
+    {topic:'quality',q:'Distinguish between Quality Assurance and Quality Control with project examples.',bullets:['Quality Assurance (QA) is process-focused: are we following the right processes to build quality in?','Quality Control (QC) is product-focused: does the deliverable meet the defined standards?','QA is preventive (proactive) - happens during execution; QC is detective (reactive) - happens on outputs','QA activities: process audits, methodology compliance reviews, peer reviews of approach','QC activities: testing, inspections, measurements against acceptance criteria, reviews of deliverables'],example:'Quality Assurance and Quality Control are complementary but distinct. QA asks "are we doing things right?" (process focus, preventive). QC asks "did we make it right?" (product focus, detective). In a construction project: QA activities included auditing that the approved methodology was followed, reviewing that qualified personnel performed specialist tasks, checking that calibrated equipment was used, and verifying that material certificates were obtained before use. QC activities included physical inspection of completed steelwork against drawings, concrete cube strength testing at 7 and 28 days, dimensional surveys against tolerances, and client witness inspections at hold points. The PM understood that investing in QA (prevention) reduces QC failures (detection). When quality audits revealed that subcontractor method statements weren\'t being reviewed before work started (QA failure), this was corrected immediately—preventing what would have been expensive rework discovered only at inspection (QC failure). The Cost of Quality model shows prevention costs (training, QA) are far cheaper than failure costs (rework, warranty claims, reputation damage).'},
+    {topic:'quality',q:'Explain the Cost of Quality model and its implications for project management.',bullets:['Prevention costs: training, quality planning, process design, tools - invest upfront to avoid failures','Appraisal costs: testing, inspections, audits, reviews - detecting defects before delivery','Internal failure costs: rework, retesting, scrap, delays - defects found before customer receives product','External failure costs: warranty, returns, reputation damage, legal - defects found by customer (most expensive)','Optimal quality investment: increase prevention spend to reduce total cost of quality (prevention + appraisal < failure costs)'],example:'The Cost of Quality model categorises quality-related costs into four groups with a clear message: invest in prevention. Prevention costs (5-10% of project budget) include training teams, developing quality plans, designing robust processes, and tool investment. Appraisal costs (10-15%) include testing, inspections, peer reviews, and audits. Internal failure costs (15-25%) include rework, retesting, scrap, and delay. External failure costs (25-50%+) include warranty claims, product recalls, legal action, and reputation damage. A software company tracked these costs: spending £10k on automated testing tools (prevention) and £20k on code review processes (prevention) reduced defect rates from 15 to 3 per release. This eliminated approximately £150k in customer-facing defects (external failure) and £80k in late-stage rework (internal failure). The ROI on quality prevention was 7:1. The implication for PMs is clear: quality cannot be "inspected in" at the end—it must be "built in" through prevention. Cutting quality prevention budget to save money typically increases total project cost through exponentially higher failure costs.'},
+    // FINANCE
+    {topic:'finance',q:'Explain Earned Value Management (EVM) and how it integrates scope, time and cost measurement.',bullets:['PV (Planned Value): budgeted cost of work SCHEDULED to be done by now','EV (Earned Value): budgeted cost of work actually PERFORMED/completed','AC (Actual Cost): actual cost incurred for work performed','SV = EV - PV (negative = behind schedule); CV = EV - AC (negative = over budget)','SPI = EV/PV (< 1 = behind); CPI = EV/AC (< 1 = over budget); EAC = BAC/CPI (forecast final cost)'],example:'Earned Value Management integrates scope, schedule, and cost into a single measurement framework. Consider a project to build 10 identical modules, each budgeted at £10k (BAC = £100k), planned to complete 1 per week. At week 6: PV = £60k (6 modules should be done), EV = £50k (5 modules actually complete), AC = £55k (actually spent £55k). SV = £50k - £60k = -£10k (behind schedule by one module). CV = £50k - £55k = -£5k (over budget). SPI = 50/60 = 0.83 (only achieving 83% of planned schedule progress). CPI = 50/55 = 0.91 (getting only 91p of value for every £1 spent). EAC = £100k / 0.91 = £110k (forecast to finish £10k over budget if trend continues). This single framework told the PM and sponsor: we are behind AND over budget. The PM investigated and found that modules were taking longer due to design complexity (schedule) and requiring overtime to attempt catch-up (cost). Corrective actions included simplifying remaining module designs and adding a contractor for one sprint rather than continuing overtime.'},
+    {topic:'finance',q:'Compare different cost estimating techniques and when each is appropriate.',bullets:['Analogous (top-down): uses similar past projects - quick, less accurate, good for early estimates when detail is lacking','Parametric: uses statistical relationships (e.g., cost per square metre) - accurate if good historical data exists','Bottom-up: estimates each work package then aggregates - most accurate but time-consuming, needs WBS','Three-point: uses Optimistic + 4×Most Likely + Pessimistic / 6 (PERT formula) - accounts for uncertainty','Accuracy improves as project progresses: Cone of Uncertainty narrows from -25%/+75% at concept to ±5% at execution'],example:'Estimating techniques vary in accuracy and effort, suited to different project stages. At concept stage, a construction company used Analogous estimating—"our last similar office building cost £2,500/sqm, so 5,000sqm ≈ £12.5M"—accuracy ±40%, took 2 hours. At feasibility, Parametric estimating refined this—using regression analysis of 50 previous builds accounting for location, specification grade, and ground conditions—accuracy ±25%, took 2 days. At detailed design, Bottom-up estimating priced each package from the WBS—foundations £800k, steelwork £1.2M, etc.—accuracy ±10%, took 3 weeks. Three-point estimating was applied to uncertain packages: the ground works estimate used Optimistic £600k, Most Likely £800k, Pessimistic £1.4M, giving PERT estimate of £867k with quantified risk. The PM added contingency (10% for known unknowns) and the sponsor held management reserve (5% for unknown unknowns). This layered approach meant early decisions used appropriate (not false) precision while detailed planning achieved budget confidence.'},
+
+    // RESOURCES
+    {topic:'resources',q:'Explain resource levelling and resource smoothing and when each technique is used.',bullets:['Resource Levelling: resolves over-allocation by delaying activities - MAY EXTEND project end date','Resource Smoothing: redistributes work within available float - MAINTAINS project end date','Levelling is used when resource constraints are the priority (limited specialists, fixed team size)','Smoothing is used when the end date is the priority but resource peaks should be reduced','Both techniques use float on non-critical activities; levelling may also delay critical activities'],example:'Resource levelling and smoothing address over-allocation differently. In a software project, two critical developers were each allocated to 150% capacity in weeks 4-6 (assigned to multiple parallel activities). Resource Levelling approach: delayed the lower-priority activity to weeks 7-9 when the developer was free. Result: resource conflict resolved but project extended by 3 weeks (the delayed activity was on a near-critical path that became critical). This was acceptable because the alternative—hiring contractors—would cost £30k and introduce knowledge transfer risk. Resource Smoothing approach (used for a different over-allocation): a tester was at 120% in week 8 but had float on their assigned activities. By starting one test activity 2 days earlier (using its 5 days of float), the peak reduced to 100% without affecting the end date. Decision logic: if the end date is contractually fixed with penalties, use smoothing (and accept remaining minor over-allocation or fund overtime). If resources are genuinely unavailable (specialist on leave, single qualified person), levelling is the only option—then communicate schedule impact to sponsor for decision.'},
+    {topic:'resources',q:'How should a project manager handle resource conflicts in a matrix organisation?',bullets:['Matrix organisations = team members report to functional managers but work on projects - dual reporting creates tension','Resource conflicts arise when functional priorities compete with project needs','PM must negotiate with functional managers - relationship and influence skills critical','Escalation path should be defined in governance (e.g., portfolio board arbitrates)','Tools: resource agreements at initiation, regular resource review meetings, skills matrix for alternatives, early visibility of future needs'],example:'In matrix organisations, PMs lack direct authority over team members who report to functional managers, creating inherent resource conflicts. A PM leading a product development project needed a senior data architect 4 days/week for 3 months, but the functional IT manager only offered 2 days due to operational demands. Resolution approach: 1) Built relationship with IT manager through regular coffee meetings (influence without authority), 2) Presented business case showing project ROI and timeline impact of reduced allocation, 3) Offered flexibility—full allocation for critical 4-week design phase, then reduced allocation with defined touchpoints, 4) Identified a junior architect who could handle routine tasks with senior oversight (reducing senior demand to 3 days), 5) Escalated to portfolio board only when initial negotiation stalled, presenting options with trade-offs. Preventive measures included: resource agreements signed by functional managers at project initiation, 12-week rolling resource forecast shared monthly giving early warning, skills matrix identifying backup personnel, and quarterly resource review with all functional heads to resolve emerging conflicts before they become crises.'},
+    // STAKEHOLDERS
+    {topic:'stakeholders',q:'Describe a comprehensive stakeholder management process for a project.',bullets:['Identify: use multiple techniques (brainstorming, organisational charts, category checklists) to find ALL stakeholders','Analyse: assess power, interest, attitude, influence - understand what matters to each stakeholder','Plan: develop engagement strategy tailored to each stakeholder or group','Engage: execute the plan through appropriate communication, involvement and relationship management','Monitor: regularly reassess stakeholder positions and adjust strategies - attitudes change over time'],example:'Effective stakeholder management follows a systematic process. For a city centre redevelopment project: IDENTIFY used multiple lenses—organisational (council, developers, contractors), community (residents, businesses, schools), regulatory (planning authority, environment agency, highways), and interest groups (heritage society, disability access groups, environmental campaigners). This identified 47 stakeholder groups. ANALYSE used Power/Interest grid mapping each group, supplemented by one-to-one interviews with key individuals to understand their specific concerns, success criteria, and communication preferences. PLAN developed tailored strategies: the planning authority (high power/high interest) received weekly design updates and early consultation on changes; local businesses (low power/high interest) received monthly newsletters and quarterly open days; the heritage society (medium power/high interest) was invited to join a design advisory panel. ENGAGE executed through dedicated community liaison officer, project website with progress updates, monthly stakeholder newsletter, quarterly public exhibitions, and formal consultation periods. MONITOR reviewed stakeholder map monthly—when a residents\' group shifted from Neutral to Resistant after noise complaints, immediate action included revised working hours, acoustic barriers, and personal visits from the site manager.'},
+    {topic:'stakeholders',q:'Explain how to manage negative or resistant stakeholders.',bullets:['Understand the root cause of resistance - is it rational (valid concerns) or emotional (fear of change)?','Engage early and directly - avoidance allows resistance to grow and spread','Listen actively to concerns - people need to feel heard before they will engage','Address legitimate concerns where possible - adapt the project to reduce negative impact','Use appropriate strategies: education, involvement, facilitation, negotiation, or as last resort, mandating with senior authority'],example:'Managing resistant stakeholders requires understanding and addressing root causes rather than ignoring or overriding opposition. In an ERP implementation, the Operations Director was actively undermining the project—spreading negativity, withholding resources, and challenging every decision at steering committee. The PM\'s approach: 1) One-to-one meeting to listen without defending—discovered his resistance stemmed from a previous failed IT project that disrupted operations for 6 months and damaged his department\'s performance metrics. 2) Acknowledged the validity of his concerns—previous project had genuinely caused problems. 3) Addressed concerns specifically—presented phased rollout plan with operational continuity guarantees, offered his team involvement in testing and go/no-go decisions, and committed to rollback capability. 4) Gave him visible influence—invited him to co-chair the operational readiness workstream. 5) Delivered on promises—first phase went smoothly, building trust incrementally. Within 3 months he moved from Resistant to Supportive, eventually becoming a champion because his concerns had been genuinely addressed, not dismissed. Had this failed, escalation to sponsor with evidence would have been the next step, but building genuine buy-in is always preferable to mandating compliance.'}
+];
+
+// ===== LEARNING FLASHCARDS DATA =====
+const learningFlashcards = [
+    // Strategy
+    {topic:'strategy',front:'What is PESTLE Analysis?',back:'Political, Economic, Social, Technological, Legal, Environmental - macro-environment scanning tool for strategic context'},
+    {topic:'strategy',front:'What is a Balanced Scorecard?',back:'Strategic performance framework with 4 perspectives: Financial, Customer, Internal Process, Learning & Growth'},
+    {topic:'strategy',front:'What is the Ansoff Matrix?',back:'Growth strategy tool: Market Penetration, Market Development, Product Development, Diversification'},
+    {topic:'strategy',front:'How do projects link to strategy?',back:'Vision → Mission → Strategy → Portfolio → Programme → Project. Business case justifies strategic alignment.'},
+    {topic:'strategy',front:'What is Benefits Realisation?',back:'The process of ensuring that planned benefits from a project are actually achieved after delivery. Benefits owners are accountable.'},
+    // Compliance
+    {topic:'compliance',front:'What is ISO 21500?',back:'International standard providing guidance on project management concepts and processes'},
+    {topic:'compliance',front:'What is ISO 31000?',back:'International standard for risk management - provides principles, framework and process'},
+    {topic:'compliance',front:'What is GDPR?',back:'General Data Protection Regulation - EU law governing collection, processing and storage of personal data'},
+    {topic:'compliance',front:'Difference: Mandatory vs Voluntary standards?',back:'Mandatory = legally required (regulations). Voluntary = best practice (ISO standards, PRINCE2). Both important but legal takes priority.'},
+    {topic:'compliance',front:'What is Duty of Care?',back:'Legal obligation to ensure health and safety of all people affected by project activities. Non-negotiable.'},
+    // Self-Reflection
+    {topic:'self-reflection',front:'What is the Johari Window?',back:'Self-awareness tool with 4 quadrants: Open (known to all), Blind Spot (others see, you don\'t), Hidden (you hide), Unknown (nobody knows)'},
+    {topic:'self-reflection',front:'What is Kolb\'s Learning Cycle?',back:'4 stages: Concrete Experience → Reflective Observation → Abstract Conceptualisation → Active Experimentation'},
+    {topic:'self-reflection',front:'What is Emotional Intelligence?',back:'Goleman\'s 5 components: Self-awareness, Self-regulation, Motivation, Empathy, Social Skills'},
+    {topic:'self-reflection',front:'What is the Eisenhower Matrix?',back:'Prioritisation tool: Urgent+Important (Do), Not Urgent+Important (Schedule), Urgent+Not Important (Delegate), Neither (Eliminate)'},
+    // Integrity
+    {topic:'integrity',front:'What is the Trust Equation?',back:'Trust = (Credibility + Reliability + Intimacy) / Self-Orientation. Lower self-orientation = higher trust.'},
+    {topic:'integrity',front:'What defines personal reliability?',back:'Consistently following through on commitments, meeting deadlines, delivering promised quality, being dependable'},
+    // Communication
+    {topic:'communication',front:'What is Mehrabian\'s Rule?',back:'Communication impact: 7% words, 38% tone of voice, 55% body language (applies to emotional/attitudinal messages)'},
+    {topic:'communication',front:'Push vs Pull Communication?',back:'Push: sent directly to recipients (emails, reports). Pull: made available for access (intranet, shared drives). Interactive: two-way dialogue.'},
+    {topic:'communication',front:'What is Active Listening?',back:'Fully concentrating, understanding, responding and remembering. Involves paraphrasing, asking clarifying questions, observing non-verbal cues.'},
+    // Negotiation
+    {topic:'negotiation',front:'What is BATNA?',back:'Best Alternative To a Negotiated Agreement - your fallback if negotiation fails. Stronger BATNA = more negotiating power.'},
+    {topic:'negotiation',front:'Harvard Principled Negotiation - 4 principles?',back:'1) Separate people from problem, 2) Focus on interests not positions, 3) Invent options for mutual gain, 4) Use objective criteria'},
+    {topic:'negotiation',front:'What is ZOPA?',back:'Zone of Possible Agreement - the range between both parties\' reservation points where agreement is possible'},
+    // Results
+    {topic:'results',front:'What are SMART objectives?',back:'Specific, Measurable, Achievable, Relevant, Time-bound'},
+    {topic:'results',front:'What is MoSCoW?',back:'Prioritisation: Must have (critical), Should have (important), Could have (desirable), Won\'t have (excluded this time)'},
+    {topic:'results',front:'Output vs Outcome vs Benefit?',back:'Output = tangible deliverable. Outcome = change resulting from output. Benefit = measurable improvement from outcome.'},
+
+    // Design
+    {topic:'design',front:'What is a Business Case?',back:'Justification document: Strategic fit, Options appraisal, Expected benefits, Costs, Risks, Timescales. Living document reviewed at gates.'},
+    {topic:'design',front:'Waterfall vs Agile vs Hybrid?',back:'Waterfall: sequential, plan-driven, clear requirements. Agile: iterative, value-driven, evolving requirements. Hybrid: combines both approaches.'},
+    {topic:'design',front:'What is a Gate Review?',back:'Decision point to assess project viability: Continue, Modify, or Stop. Based on deliverables, risks and business case validity.'},
+    // Requirements
+    {topic:'requirements',front:'What is the Kano Model?',back:'Classifies requirements: Basic (expected, dissatisfaction if absent), Performance (satisfaction proportional), Excitement (unexpected delight)'},
+    {topic:'requirements',front:'Functional vs Non-Functional Requirements?',back:'Functional: what the system DOES (features). Non-functional: HOW WELL it does it (performance, security, usability, reliability).'},
+    {topic:'requirements',front:'What is a Requirements Traceability Matrix?',back:'Links each requirement from origin → specification → design → test → deliverable. Ensures nothing lost and all requirements verified.'},
+    // Scope
+    {topic:'scope',front:'What is a WBS?',back:'Work Breakdown Structure - hierarchical decomposition of total project scope into manageable work packages. Deliverable-oriented, follows 100% rule.'},
+    {topic:'scope',front:'Scope Creep vs Gold Plating?',back:'Scope creep: uncontrolled scope expansion without change control. Gold plating: team adds unrequested extras. Both harmful.'},
+    {topic:'scope',front:'What is the 100% Rule?',back:'The WBS must include 100% of the work defined by scope. Every element must trace to scope. If it\'s not in WBS, it\'s not in scope.'},
+    // Procurement
+    {topic:'procurement',front:'Fixed Price vs Cost Plus contracts?',back:'Fixed Price: risk on SELLER (agrees total price upfront). Cost Plus: risk on BUYER (pays actual costs + fee). T&M is middle ground.'},
+    {topic:'procurement',front:'What is the Kraljic Matrix?',back:'Classifies purchases by supply risk and profit impact: Leverage (low risk, high impact), Strategic (high both), Non-critical (low both), Bottleneck (high risk, low impact)'},
+    // Plan & Control
+    {topic:'plan-control',front:'EVM Key Formulas?',back:'SV=EV-PV, CV=EV-AC, SPI=EV/PV, CPI=EV/AC, EAC=BAC/CPI. <1 is bad for SPI/CPI. Negative is bad for SV/CV.'},
+    {topic:'plan-control',front:'What is Rolling Wave Planning?',back:'Plan near-term work in detail, future work at summary level. Progressive elaboration as more information becomes available.'},
+    {topic:'plan-control',front:'What is a Tolerance?',back:'Acceptable variation from plan before escalation is required. Defines the boundary between "manage" and "escalate".'},
+    // Risk
+    {topic:'risk',front:'Risk Response - Threats?',back:'Avoid (eliminate threat), Transfer (insurance/contract), Mitigate (reduce probability/impact), Accept (acknowledge and monitor)'},
+    {topic:'risk',front:'Risk Response - Opportunities?',back:'Exploit (make certain), Share (partner), Enhance (increase probability/impact), Accept (welcome if it occurs)'},
+    {topic:'risk',front:'What is EMV?',back:'Expected Monetary Value = Probability × Impact. Used in decision trees. Sum of all EMVs = expected project risk cost.'},
+    {topic:'risk',front:'Risk vs Issue?',back:'Risk = uncertain future event. Issue = problem that HAS occurred. Risks are managed; issues are resolved.'},
+    // Change
+    {topic:'change',front:'Kotter\'s 8 Steps?',back:'1)Urgency 2)Coalition 3)Vision 4)Communicate 5)Empower 6)Quick Wins 7)Consolidate 8)Anchor in culture'},
+    {topic:'change',front:'Lewin\'s 3 Phases?',back:'Unfreeze (create readiness), Change (make the transition), Refreeze (embed new state as normal)'},
+    {topic:'change',front:'What is ADKAR?',back:'Individual change model: Awareness (of need), Desire (to participate), Knowledge (of how), Ability (to implement), Reinforcement (to sustain)'},
+
+    // SAQ Topics - Learning Flashcards
+    {topic:'governance',front:'What is the role of a Project Sponsor?',back:'Single point of accountability. Owns business case, secures funding, chairs board, makes escalated decisions, removes blockers, champions project.'},
+    {topic:'governance',front:'What are Stage Gates?',back:'Formal decision points between project phases where continuation is assessed against business case, deliverables completeness and risk profile.'},
+    {topic:'governance',front:'What is a PMO?',back:'Project Management Office. Types: Supportive (advisory), Controlling (compliance), Directive (manages projects). Provides standards, reporting, resources.'},
+    {topic:'power',front:'Mendelow\'s Power/Interest Grid?',back:'High Power/High Interest: Manage Closely. High Power/Low Interest: Keep Satisfied. Low Power/High Interest: Keep Informed. Low/Low: Monitor.'},
+    {topic:'power',front:'French & Raven\'s Power Sources?',back:'Legitimate (position), Reward (can give), Coercive (can punish), Expert (knowledge), Referent (charisma), Informational (access to information)'},
+    {topic:'power',front:'What is Influence Without Authority?',back:'Using expert/referent power, relationships, reciprocity and persuasion to achieve outcomes when you lack formal hierarchical authority. Essential PM skill.'},
+    {topic:'culture',front:'Hofstede\'s 6 Dimensions?',back:'Power Distance, Individualism/Collectivism, Masculinity/Femininity, Uncertainty Avoidance, Long/Short-term Orientation, Indulgence/Restraint'},
+    {topic:'culture',front:'Schein\'s 3 Levels?',back:'Level 1: Artefacts (visible). Level 2: Espoused Values (stated). Level 3: Basic Assumptions (unconscious). Gap between 2 and 3 reveals dysfunction.'},
+    {topic:'culture',front:'Handy\'s 4 Organisational Cultures?',back:'Power (central control, Zeus), Role (bureaucratic, Apollo), Task (team/project, Athena), Person (individual, Dionysus)'},
+    {topic:'relationships',front:'Trust-Building Components?',back:'Competence (can you do it?), Consistency (are you reliable?), Care (do you have my interests at heart?). Built over time, lost instantly.'},
+    {topic:'relationships',front:'Engagement Levels?',back:'Unaware → Resistant → Neutral → Supportive → Leading. Map current vs desired state, plan actions to close gaps.'},
+    {topic:'leadership',front:'Situational Leadership Styles?',back:'S1 Directing (high task/low rel), S2 Coaching (high/high), S3 Supporting (low task/high rel), S4 Delegating (low/low). Match to follower readiness.'},
+    {topic:'leadership',front:'Adair\'s Action-Centred Leadership?',back:'Three overlapping circles: Task (achieve objective), Team (build/maintain group), Individual (develop/support people). Balance all three.'},
+    {topic:'leadership',front:'Transformational vs Transactional?',back:'Transformational: inspires, vision, empowers, innovates. Transactional: rewards compliance, manages exceptions, maintains status quo. Both needed.'},
+    {topic:'teamwork',front:'Tuckman\'s 5 Stages?',back:'Forming (polite, uncertain), Storming (conflict, challenge), Norming (cohesion, agreements), Performing (high productivity), Adjourning (disbanding)'},
+    {topic:'teamwork',front:'Lencioni\'s 5 Dysfunctions?',back:'Absence of Trust → Fear of Conflict → Lack of Commitment → Avoidance of Accountability → Inattention to Results. Build from bottom up.'},
+    {topic:'teamwork',front:'What is Psychological Safety?',back:'Team climate where members feel safe to take interpersonal risks - speak up, admit mistakes, ask questions without fear of punishment.'},
+    {topic:'conflict',front:'Thomas-Kilmann 5 Modes?',back:'Competing (win-lose), Collaborating (win-win), Compromising (split difference), Avoiding (withdraw), Accommodating (yield). Choose based on situation.'},
+    {topic:'conflict',front:'Crisis Management Steps?',back:'1)Assess situation 2)Inform stakeholders 3)Convene crisis team 4)Make rapid decisions 5)Implement actions 6)Monitor 7)Review and learn'},
+    {topic:'resourcefulness',front:'De Bono\'s Six Hats?',back:'White (facts), Red (feelings), Black (risks), Yellow (benefits), Green (creativity), Blue (process control)'},
+    {topic:'resourcefulness',front:'5 Whys Technique?',back:'Repeatedly asking "Why?" (typically 5 times) to drill from symptom to root cause. Simple but effective for single-cause problems.'},
+    {topic:'resourcefulness',front:'Design Thinking Process?',back:'Empathise (understand users) → Define (frame problem) → Ideate (generate solutions) → Prototype (build to test) → Test (learn and iterate)'},
+    {topic:'time',front:'Critical Path Definition?',back:'Longest path through network diagram. Determines minimum project duration. Activities have zero float - any delay extends project.'},
+    {topic:'time',front:'Float Calculation?',back:'Total Float = Late Start - Early Start (or Late Finish - Early Finish). Free Float = next activity ES - this activity EF.'},
+    {topic:'time',front:'PERT Formula?',back:'Expected Duration = (Optimistic + 4×Most Likely + Pessimistic) / 6. Standard Deviation = (P-O)/6.'},
+    {topic:'organisation',front:'What is RACI?',back:'Responsible (does work), Accountable (approves - only ONE per task), Consulted (input before), Informed (told after). Clarifies roles.'},
+    {topic:'organisation',front:'What is Configuration Management?',back:'Identifies, tracks and controls versions of deliverables. Ensures everyone uses correct version. Provides change audit trail.'},
+    {topic:'quality',front:'QA vs QC?',back:'QA = process-focused, preventive (are we following right processes?). QC = product-focused, detective (does deliverable meet standards?).'},
+    {topic:'quality',front:'Cost of Quality Categories?',back:'Prevention (training, planning), Appraisal (testing, reviews), Internal Failure (rework before delivery), External Failure (warranty, reputation). Invest in prevention.'},
+    {topic:'quality',front:'PDCA Cycle?',back:'Plan (establish objectives), Do (implement), Check (measure results vs plan), Act (improve based on findings). Continuous improvement loop.'},
+    {topic:'finance',front:'EVM: What is BAC?',back:'Budget At Completion - total planned budget for the project. EAC (Estimate At Completion) = BAC/CPI forecasts final cost.'},
+    {topic:'finance',front:'NPV Explained?',back:'Net Present Value - sum of discounted future cash flows minus initial investment. Positive NPV = project adds value. Higher NPV = better investment.'},
+    {topic:'finance',front:'Contingency vs Management Reserve?',back:'Contingency: budget for KNOWN unknowns (identified risks). Management Reserve: budget for UNKNOWN unknowns (unidentified risks). PM controls contingency; sponsor controls reserve.'},
+    {topic:'resources',front:'Resource Levelling vs Smoothing?',back:'Levelling: delays activities to resolve over-allocation, MAY extend end date. Smoothing: uses float to reduce peaks, MAINTAINS end date.'},
+    {topic:'resources',front:'What is a Skills Matrix?',back:'Maps team members against required competencies with proficiency levels. Identifies gaps for training, recruitment or outsourcing decisions.'},
+    {topic:'stakeholders',front:'Stakeholder Register Contents?',back:'Name, role, power, interest, attitude, requirements, communication preferences, engagement strategy, relationship owner.'},
+    {topic:'stakeholders',front:'Salience Model?',back:'Classifies stakeholders by Power, Legitimacy, Urgency. Definitive stakeholders have all 3. Dormant (power only), Discretionary (legitimacy only), Demanding (urgency only).'}
+];
+
+// ===== PODCAST DATA =====
+const podcastData = {
+    'strategy': {title:'Strategy',script:'Strategy in IPMA is about ensuring your project aligns with the organisation\'s strategic objectives. Think of it like this: a project that delivers on time and budget but doesn\'t contribute to the organisation\'s goals is NOT a success. The key models are PESTLE for scanning the external environment, SWOT for internal/external analysis, and the Balanced Scorecard for measuring strategic performance across four perspectives. Remember: Vision cascades down to Mission, then Strategy, Portfolio, Programme, and finally Project. The business case is your golden thread linking project to strategy. A memorable example: Kodak invented digital photography but their projects focused on film—strategically misaligned projects that led to bankruptcy despite technical excellence.'},
+    'compliance': {title:'Compliance, Standards & Regulations',script:'Compliance is non-negotiable. If your project objective conflicts with the law, the law wins every time. Think of standards in two buckets: mandatory (regulations like GDPR, health and safety law) and voluntary (best practice like ISO 21500, PRINCE2). Key point for exams: professional ethics means transparency, honesty, and responsibility. A memorable example: the Grenfell Tower tragedy showed what happens when compliance with fire safety regulations is treated as optional. The project manager\'s duty of care is paramount—no schedule or budget pressure justifies compromising safety.'},
+    'self-reflection': {title:'Self-Reflection & Self-Management',script:'Self-reflection is the foundation of personal effectiveness. The Johari Window is your go-to model—imagine a 2x2 grid. The "Blind Spot" quadrant is what others see but you don\'t. That\'s why 360-degree feedback is so powerful. Kolb\'s Learning Cycle reminds us that experience alone isn\'t enough—you must reflect on it, conceptualise it, and experiment with new approaches. Goleman\'s Emotional Intelligence has five components, but for the exam, remember: self-awareness comes first because you can\'t manage others until you manage yourself. Memorable example: a PM who always micromanaged received 360 feedback revealing the team felt distrusted—this blind spot was reducing performance, not improving it.'},
+    'integrity': {title:'Personal Integrity & Reliability',script:'Trust is your most valuable currency as a project manager. The Trust Equation is brilliant: Trust equals Credibility plus Reliability plus Intimacy, all divided by Self-Orientation. The lower your self-orientation (how much it\'s about YOU), the more people trust you. Reliability means doing what you say you\'ll do—every time. It\'s built slowly through consistent behaviour but destroyed instantly by one broken promise. Memorable example: a PM who always gave honest project status reports—even bad news—was trusted by the board. When they asked for emergency budget, it was granted immediately because their track record of transparency meant the board believed the request was genuine.'},
+    'communication': {title:'Personal Communication',script:'Here\'s the stat that sticks: project managers spend approximately 70% of their time communicating. Mehrabian\'s 7-38-55 rule tells us words carry only 7% of emotional meaning—tone carries 38% and body language 55%. But be careful—this applies to emotional/attitudinal messages, not all communication! The Shannon-Weaver model reminds us that "noise" distorts messages—noise can be physical, psychological, or semantic. Push communication goes TO people; Pull makes information AVAILABLE. A memorable example: a PM sent a critical risk report by email (push) but the sponsor was travelling and missed it. Had they also called (interactive), the risk could have been escalated earlier. The lesson: important messages need redundant channels.'},
+    'negotiation': {title:'Negotiation',script:'The Harvard Principled Negotiation approach has four pillars you must remember: separate people from the problem, focus on interests not positions, invent options for mutual gain, and use objective criteria. BATNA is your power source—if you have a strong alternative, you negotiate from strength. Here\'s the exam-winning insight: interests differ from positions. A position is "I want this meeting room." An interest is "I need a quiet space for a client call." Understanding interests opens up creative solutions. Memorable example: two project teams fighting over the same developer (positions). Investigation revealed one needed architecture design (weeks 1-3), the other needed coding (weeks 4-8)—sequential sharing satisfied both interests with zero compromise.'},
+    'results': {title:'Results Orientation',script:'Results orientation is about focusing on outcomes, not just activities. The distinction matters: outputs are what you deliver (a system), outcomes are the changes that result (staff work more efficiently), benefits are the measurable improvements (30% cost reduction). SMART objectives are fundamental—if you can\'t measure it, you can\'t manage it. MoSCoW prioritisation is your friend for scope decisions: Must, Should, Could, Won\'t. The PDCA cycle (Plan-Do-Check-Act) drives continuous improvement. Memorable example: a project delivered a perfect CRM system (output) but nobody used it because change management was neglected—zero outcomes, zero benefits despite technical delivery success.'},
+
+    'design': {title:'Project Design',script:'Project design is where strategy meets execution. The business case is your key document—it contains strategic fit, options appraisal, benefits, costs, risks and timescales. It\'s a living document reviewed at every gate. Your methodology choice (Waterfall, Agile, Hybrid) depends on uncertainty and complexity—stable requirements suit Waterfall; evolving requirements suit Agile. Gate reviews are go/no-go decision points between phases. Memorable example: a project chose Waterfall for a regulatory system with fixed requirements and Agile for the customer-facing app with evolving needs—hybrid approach matching methodology to context, not dogma.'},
+    'requirements': {title:'Requirements & Objectives',script:'Requirements define WHAT you need, not HOW you\'ll build it. The hierarchy matters: Business requirements (why), Stakeholder requirements (who needs what), Solution requirements (functional and non-functional), Transition requirements (how to get there). The Kano Model is exam-gold: Basic needs (expected—dissatisfaction if absent), Performance needs (more is better), Excitement needs (unexpected delight). Scope creep often starts with ambiguous requirements. Memorable example: "the system should be fast" is ambiguous. "Page load under 2 seconds for 95% of requests" is measurable. The second version can be tested; the first invites endless scope creep.'},
+    'scope': {title:'Scope',script:'Scope is about boundaries—what\'s IN and what\'s OUT. The WBS is your cornerstone tool—a deliverable-oriented hierarchical decomposition following the 100% rule (captures ALL work). The scope statement should explicitly list inclusions, exclusions, assumptions and constraints. Scope creep is uncontrolled expansion without formal change control. Gold plating is the team adding unrequested features. Both are harmful. Memorable example: a developer adding a "cool" dashboard feature nobody asked for (gold plating) introduced a bug that delayed the critical path by 2 weeks. The lesson: if it\'s not in the scope baseline, it needs change control.'},
+    'procurement': {title:'Procurement',script:'Procurement is about getting the best from external providers. The make-or-buy decision considers capability, capacity, cost and control. Contract types allocate risk: Fixed Price puts risk on the seller (they eat overruns), Cost Plus puts risk on the buyer (you pay whatever it costs plus a fee), Time & Materials splits risk. The Kraljic Matrix classifies purchases by supply risk and profit impact—strategic items need partnerships, leverage items need competitive bidding. Memorable example: a company used fixed-price for well-defined construction (low risk of change) but cost-plus for innovative R&D (impossible to predict effort)—matching contract risk allocation to uncertainty.'},
+    'plan-control': {title:'Plan & Control',script:'EVM is the most exam-tested topic here. Three baseline values: PV (what you planned to spend by now), EV (value of work actually completed), AC (what you actually spent). Key formulas: SV = EV - PV (schedule), CV = EV - AC (cost). SPI = EV/PV, CPI = EV/AC. Below 1 is bad for both. EAC = BAC/CPI forecasts final cost. The concept of tolerances is crucial: they define the acceptable variation before you MUST escalate. Rolling Wave Planning means detail for near-term, summary for future. Memorable example: SPI of 0.8 at month 3 of a 12-month project means you\'re only delivering 80% of planned progress—without action, you\'ll finish 20% late.'},
+    'risk': {title:'Risk & Opportunity',script:'Risk is uncertainty that MATTERS—it can be positive (opportunity) or negative (threat). The process is: Identify, Assess (probability × impact), Plan Responses, Monitor. Threat responses: Avoid (eliminate), Transfer (insurance/contract), Mitigate (reduce P or I), Accept. Opportunity responses: Exploit (make certain), Share (partner), Enhance (increase P or I), Accept. Key concepts: risk appetite (how much you\'ll tolerate), residual risk (what remains after response), secondary risk (created by your response). Memorable example: a risk response of outsourcing development (transfer) created a secondary risk of knowledge dependency on the supplier—the response itself needed managing.'},
+    'change': {title:'Change & Transformation',script:'Change management is about PEOPLE, not processes. Kotter\'s 8 Steps are the most-tested model: start with Urgency, build a Coalition, create a Vision, Communicate it, Empower people, generate Quick Wins, Consolidate gains, Anchor in culture. Lewin says: Unfreeze (create dissatisfaction with current state), Change (transition), Refreeze (make new state permanent). ADKAR works at individual level: Awareness, Desire, Knowledge, Ability, Reinforcement. The Change Curve shows emotional journey: Denial → Resistance → Exploration → Commitment. Memorable example: a brilliant system failed because nobody told staff WHY it was needed (no Awareness in ADKAR). Without understanding the "why," desire to change never developed.'},
+    'governance': {title:'Governance, Structures & Processes',script:'Governance answers: who makes decisions, how are they made, and how is performance overseen? The project board or steering committee provides strategic direction, the sponsor is the single accountable person, and the PM delivers day-to-day. RACI matrices clarify who does what—remember, only ONE "A" per activity. Stage gates are go/no-go checkpoints. The PMO provides support and standards. Escalation paths must be defined BEFORE issues arise. Memorable example: a project without clear governance had three different directors each believing they were the decision-maker—conflicting instructions caused 6 weeks of rework before a RACI was established.'},
+    'power': {title:'Power & Interest',script:'Power in organisations isn\'t just about hierarchy. French and Raven identified six sources: Legitimate (your title), Reward (what you can give), Coercive (what you can threaten), Expert (your knowledge), Referent (your charisma), Informational (what you know). In matrix organisations, PMs typically lack legitimate power over team members—so expert and referent power become critical. Mendelow\'s grid maps stakeholders by power and interest. Memorable example: a junior PM couldn\'t get resources from a functional manager using legitimate authority. But by demonstrating expert knowledge of the technology (expert power) and consistently delivering on promises (building referent power), they earned the respect that made the functional manager WANT to support their project.'},
+    'culture': {title:'Culture & Values',script:'Culture is "how we do things around here"—Schein says it operates at three levels: Artefacts (what you see), Espoused Values (what they say), Basic Assumptions (what they actually believe). The gap between level 2 and 3 is where problems hide. Hofstede gives us national culture dimensions—Power Distance and Uncertainty Avoidance most affect project management. Handy describes four organisational cultures: Power (central control), Role (bureaucracy), Task (project-focused), Person (individual-focused). Memorable example: a company said "we empower teams" (espoused value) but every decision needed director approval (basic assumption of control). The PM who understood this didn\'t fight it—they scheduled pre-approvals, working with the real culture rather than the stated one.'},
+    'relationships': {title:'Relationships & Engagement',script:'Relationships are built on trust, which requires three things: Competence (you can deliver), Consistency (you\'re predictable), and Care (you have their interests at heart). The Stakeholder Engagement Assessment Matrix tracks current vs desired engagement levels: Unaware, Resistant, Neutral, Supportive, Leading. The gap tells you how much work is needed. Memorable example: a PM inherited a project with a resistant finance director. Rather than avoiding them, the PM scheduled monthly coffees, asked about their concerns, incorporated their feedback into budget reporting format, and delivered early financial forecasts. Within 3 months, the FD became the project\'s strongest advocate—the relationship investment paid compound returns.'},
+    'leadership': {title:'Leadership',script:'Leadership and management are complementary but different. Management is doing things right (efficiency); Leadership is doing the right things (effectiveness). Situational Leadership (Hersey-Blanchard) says adapt style to follower readiness: Direct new people, Coach developing people, Support capable-but-uncertain people, Delegate to experienced self-starters. Adair\'s three circles (Task, Team, Individual) must be balanced. Memorable example: a PM used the same directive style with everyone—graduates thrived with clear direction, but experienced architects felt micromanaged and disengaged. After learning Situational Leadership, the PM delegated fully to architects while coaching graduates—both groups\' performance improved dramatically.'},
+    'teamwork': {title:'Teamwork',script:'Tuckman is your anchor model: Forming (polite uncertainty), Storming (conflict and power struggles), Norming (agreements and cohesion), Performing (autonomous high performance), Adjourning (closure). The PM\'s role changes at each stage. Belbin shows that team role diversity matters—a team of all creative types generates brilliant ideas but never delivers. Lencioni\'s 5 Dysfunctions start with absence of trust—without trust, there\'s no honest conflict; without honest conflict, there\'s no genuine commitment. Memorable example: a team stuck in permanent "norming" (artificial harmony) never challenged bad ideas because they feared conflict. The PM deliberately introduced structured debate (Edward de Bono\'s techniques), creating safe disagreement that dramatically improved solution quality.'},
+    'conflict': {title:'Conflict & Crisis',script:'Not all conflict is bad—constructive disagreement improves decisions. Thomas-Kilmann gives five modes: Competing (I win, you lose), Collaborating (we both win), Compromising (we both give something up), Avoiding (nobody addresses it), Accommodating (I let you win). Choose based on urgency, importance, and relationship value. For crisis management: Assess, Communicate, Decide, Act, Review. Memorable example: two team leads had a technical disagreement that was actually productive—each had valid points. Rather than forcing a quick compromise, the PM facilitated collaboration: they explored both approaches, and the resulting hybrid solution was better than either original proposal.'},
+    'resourcefulness': {title:'Resourcefulness',script:'Resourcefulness is creativity under constraints. De Bono\'s Six Thinking Hats force structured thinking: White (facts), Red (feelings), Black (risks), Yellow (benefits), Green (creative ideas), Blue (process management). Root Cause Analysis using 5 Whys prevents treating symptoms. Design Thinking (Empathise, Define, Ideate, Prototype, Test) brings user-centred innovation. Memorable example: facing a 30% budget cut, a PM used Green Hat thinking with the team. Instead of cutting scope, they identified three deliverables that could use open-source components, two that a university partner could develop as research projects, and one that an existing system could deliver with minor modification. Full scope delivered at 70% of original cost.'},
+    'time': {title:'Time',script:'Critical Path Method is fundamental: it\'s the longest path through your network, determining minimum duration. Activities on it have zero float—any delay extends the end date. PERT uses three-point estimates: (O + 4M + P) / 6 for expected duration. Compression techniques: Crashing adds resources (costs more), Fast-tracking does things in parallel (more risk). Dependencies: Finish-to-Start is most common. Memorable example: a project had two paths—critical at 20 weeks and near-critical at 19 weeks with 1 week float. The PM focused solely on the critical path. When an unexpected 2-week delay hit the near-critical path, it became the new critical path, causing a 1-week project delay. Lesson: monitor near-critical paths too.'},
+    'organisation': {title:'Organisation & Information',script:'A clear organisation structure prevents confusion. RACI matrices assign Responsible, Accountable, Consulted, Informed roles. Configuration Management ensures everyone uses the right version of every document and deliverable—identification, control, status accounting, verification. Knowledge Management (create, store, share, use) preserves organisational learning. Memorable example: a team spent 3 days building a component that had already been developed on a sister project. Without knowledge management, the £15k duplication was invisible until code review. A simple shared component library would have prevented it.'},
+    'quality': {title:'Quality',script:'Quality means conformance to requirements AND fitness for purpose—both matter. Quality Assurance asks "are we following the right processes?" (preventive). Quality Control asks "does the product meet standards?" (detective). The Cost of Quality model is powerful: Prevention costs (5-10%) and Appraisal costs (10-15%) are investments that reduce Internal Failure (15-25%) and External Failure costs (25-50%+). PDCA (Plan-Do-Check-Act) drives continuous improvement. Memorable example: a team skipped code reviews to save time (reduced prevention cost). Defect rate tripled, testing took 40% longer, and two production incidents cost £200k in failure costs. The "saving" of £10k in review time cost 20× more in failures.'},
+    'finance': {title:'Finance',script:'EVM integrates scope, schedule and cost. Three numbers tell the story: PV (planned value—what you planned to spend), EV (earned value—value of work done), AC (actual cost—what you spent). SPI = EV/PV tells schedule health. CPI = EV/AC tells cost health. Below 1 is bad for both. EAC = BAC/CPI forecasts where you\'ll end up. The cone of uncertainty means early estimates are ±75% but narrow to ±5% by execution. Memorable example: at month 6, PV=£600k, EV=£500k, AC=£550k. SPI=0.83 (behind schedule), CPI=0.91 (over budget). EAC=£1M/0.91=£1.1M. The PM presented this to the board with options: accept overrun, reduce scope, or add resources to recover. Data-driven decisions, not panic.'},
+    'resources': {title:'Resources',script:'Resource management in matrix organisations is about negotiation and influence since PMs lack direct authority. Resource Levelling resolves over-allocation by delaying activities (may extend end date). Resource Smoothing uses float to reduce peaks (keeps end date). Skills matrices identify capability gaps. Memorable example: a specialist was allocated to three projects at 40% each (120% total). Rather than fighting other PMs for priority, the PM proposed sequencing: 100% for 2 critical weeks on each project in turn. All three PMs got what they needed by coordinating rather than competing for the same person simultaneously.'},
+    'stakeholders': {title:'Stakeholders',script:'Stakeholders can make or break your project. The process: Identify (use multiple lenses—org chart, categories, impact analysis), Analyse (Power/Interest grid, Salience model), Plan (tailored engagement strategies), Engage (execute communications and involvement), Monitor (attitudes change—reassess regularly). The Engagement Assessment Matrix tracks current vs desired states. Memorable example: a PM identified the CEO\'s PA as a key stakeholder nobody else had considered. The PA controlled diary access and meeting priorities. By keeping the PA informed and building rapport, the PM got faster sponsor decisions than PMs who only focused on "important" stakeholders by job title.'}
+};
+
+// ===== EXAM TIPS DATA =====
+const examTips = {
+    mcq: [
+        {title:'Time Management',tip:'You have 60 questions in 60 minutes = 1 minute per question. If stuck, mark it and move on. Don\'t spend 3 minutes on one question.'},
+        {title:'Elimination Strategy',tip:'Eliminate obviously wrong answers first. Usually 2 options are clearly wrong, leaving a 50/50 choice. Look for absolute words like "always" or "never" - these are often wrong.'},
+        {title:'Read Carefully',tip:'Read the WHOLE question including all options before answering. The question may say "all EXCEPT" or "which is NOT" - missing these words costs easy marks.'},
+        {title:'ICB4 Language',tip:'Use IPMA/ICB4 terminology in your thinking. If an option uses ICB4 language correctly, it\'s more likely correct. IPMA has specific definitions.'},
+        {title:'Best vs Correct',tip:'Some questions ask for the BEST answer. Multiple options may be partially correct, but one is the MOST correct in IPMA context. Think "what would IPMA say?"'},
+        {title:'Context Matters',tip:'IPMA favours collaborative, people-centred approaches. If in doubt between a command-control option and a collaborative one, choose collaborative.'},
+        {title:'Models and Frameworks',tip:'Know the key models by name and their components. Questions often test whether you know which model has which elements (e.g., Kotter has 8 steps, not 5).'},
+        {title:'Don\'t Overthink',tip:'Your first instinct is usually correct. Don\'t change answers unless you\'re certain your first choice was wrong. Overthinking often leads to selecting more complex (wrong) answers.'},
+        {title:'Practice Under Pressure',tip:'Do timed practice papers to build exam stamina. The pressure of time affects decision-making - get comfortable with the pace.'},
+        {title:'Competence Elements',tip:'Remember the ICB4 structure: Perspective (context), People (interpersonal), Practice (technical). Questions are drawn from all three areas for MCQ.'}
+    ],
+    saq: [
+        {title:'Structure Your Answer',tip:'Use the 5-bullet approach: Definition/concept → Key elements/components → Application/how to use → Example → Link back to project success. This ensures breadth AND depth.'},
+        {title:'Time Allocation',tip:'2 hours for 12 questions (answer 12 of 14) = 10 minutes per question. Spend 1 min reading, 8 min writing, 1 min reviewing. Stick to this rigidly.'},
+        {title:'Choose Wisely',tip:'You have 14 questions but only answer 12. Read ALL questions first (5 mins), then choose the 12 you\'re most confident about. Don\'t waste time on weak topics.'},
+        {title:'Use Models and Theories',tip:'Name-drop models with brief explanation. "Using Tuckman\'s model (Forming, Storming, Norming, Performing), the team..." shows theoretical knowledge applied practically.'},
+        {title:'Give Examples',tip:'Every answer benefits from a brief practical example. It doesn\'t need to be real - a plausible scenario shows you understand application, not just theory.'},
+        {title:'Answer the Question Asked',tip:'If the question says "explain" - define and describe. If it says "compare" - show similarities AND differences. If it says "evaluate" - give pros, cons and judgement.'},
+        {title:'5 Marks Breakdown',tip:'Typically: 1 mark for definition, 1 mark for key concepts/models, 1 mark for application/how, 1 mark for example, 1 mark for depth/critical analysis. Hit all five.'},
+        {title:'Breadth AND Depth',tip:'Don\'t write everything you know about one sub-topic. Cover the breadth of the question then add depth to 2-3 key points. Examiners want range of knowledge.'},
+        {title:'Link to PM Context',tip:'Always relate your answer back to project management. Generic management theory needs PM application. Ask: "How does this help deliver a project?"'},
+        {title:'Quality Over Quantity',tip:'A concise, well-structured answer with clear points scores better than 2 pages of waffle. Bullet points and short paragraphs are fine - clarity wins.'},
+        {title:'Read Mark Scheme',tip:'Each question is worth 5 marks, totalling 60 marks from 12 questions (120 marks total, 10 marks per question - 2 sub-parts worth 5 each, OR a single 10-mark response). Ensure proportional effort.'},
+        {title:'Keyword Density',tip:'Include relevant technical keywords: competence element names, model names, IPMA terminology. Examiners scan for evidence of knowledge - make it easy for them to give marks.'}
+    ]
+};
+
+// ===== APP STATE =====
+let currentSection = 'notes';
+let currentExam = 'mcq';
+let ragRatings = JSON.parse(localStorage.getItem('ipma-rag') || '{}');
+let timerInterval = null;
+let timerSeconds = 0;
+let timerRunning = false;
+let currentFilter = 'all';
+
+// ===== CORE FUNCTIONS =====
+function showSection(section) {
+    currentSection = section;
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    event.target.classList.add('active');
+    render();
+}
+
+function setExam(exam) {
+    currentExam = exam;
+    document.querySelectorAll('.exam-toggle button').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    render();
+}
+
+function setRag(id, rating) {
+    ragRatings[id] = rating;
+    localStorage.setItem('ipma-rag', JSON.stringify(ragRatings));
+    const btns = document.querySelectorAll(`[data-rag-id="${id}"] .rag-btn`);
+    btns.forEach(b => { b.classList.remove('active-red','active-amber','active-green'); });
+    const activeBtn = document.querySelector(`[data-rag-id="${id}"] .rag-btn.${rating}`);
+    if(activeBtn) activeBtn.classList.add(`active-${rating}`);
+    updateProgress();
+}
+
+function getRagClass(id) { return ragRatings[id] || ''; }
+
+function updateProgress() {
+    const progressEl = document.getElementById('progress-bar');
+    if(!progressEl) return;
+    const total = Object.keys(ragRatings).length;
+    const green = Object.values(ragRatings).filter(r => r === 'green').length;
+    const amber = Object.values(ragRatings).filter(r => r === 'amber').length;
+    const red = Object.values(ragRatings).filter(r => r === 'red').length;
+    if(total === 0) return;
+    const greenPct = (green/total)*100;
+    const amberPct = (amber/total)*100;
+    const redPct = (red/total)*100;
+    progressEl.innerHTML = `<div style="display:flex;height:100%;border-radius:10px;overflow:hidden"><div style="width:${greenPct}%;background:#66bb6a"></div><div style="width:${amberPct}%;background:#ffa726"></div><div style="width:${redPct}%;background:#ef5350"></div></div>`;
+}
+
+function flipCard(el) { el.classList.toggle('flipped'); }
+
+function getTopics() { return currentExam === 'mcq' ? mcqTopics : saqTopics; }
+
+function getAllTopicIds() {
+    const topics = getTopics();
+    let ids = [];
+    Object.values(topics).forEach(cat => cat.forEach(t => ids.push(t.id)));
+    return ids;
+}
+
+// ===== RENDER FUNCTIONS =====
+function render() {
+    const app = document.getElementById('app');
+    switch(currentSection) {
+        case 'notes': app.innerHTML = renderNotes(); break;
+        case 'flashcards': app.innerHTML = renderFlashcards(); break;
+        case 'mcq-flash': app.innerHTML = renderMCQFlash(); break;
+        case 'saq-flash': app.innerHTML = renderSAQFlash(); break;
+        case 'practice': app.innerHTML = renderPractice(); break;
+        case 'podcasts': app.innerHTML = renderPodcasts(); break;
+        case 'tips': app.innerHTML = renderTips(); break;
+    }
+    updateProgress();
+}
+
+function renderFilterBar() {
+    const topics = getTopics();
+    let html = '<div class="filter-bar"><button class="filter-btn '+(currentFilter==='all'?'active':'')+'" onclick="setFilter(\'all\')">All</button>';
+    Object.entries(topics).forEach(([cat, items]) => {
+        html += `<button class="filter-btn ${currentFilter===cat?'active':''}" onclick="setFilter('${cat}')">${cat.charAt(0).toUpperCase()+cat.slice(1)}</button>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function setFilter(f) { currentFilter = f; render(); }
+
+function renderNotes() {
+    const topics = getTopics();
+    let html = `<h2 style="color:#4fc3f7;margin-bottom:1rem">${currentExam==='mcq'?'MCQ':'SAQ'} Exam - Topic Notes</h2>`;
+    html += renderFilterBar();
+    Object.entries(topics).forEach(([category, items]) => {
+        if(currentFilter !== 'all' && currentFilter !== category) return;
+        html += `<div class="category-header"><h2>${category.charAt(0).toUpperCase()+category.slice(1)}</h2></div>`;
+        items.forEach(topic => {
+            const notes = topicNotes[topic.id];
+            if(!notes) return;
+            html += `<div class="topic-card">
+                <h3>${notes.title}</h3>
+                <p><strong>Definition:</strong> ${notes.definition}</p>
+                <h4>Key Competencies</h4><ul>${notes.keyCompetencies.map(c=>`<li>${c}</li>`).join('')}</ul>
+                <h4>Models & Frameworks</h4><ul>${notes.models.map(m=>`<li>${m}</li>`).join('')}</ul>
+                <h4>Key Ideas</h4><ul>${notes.keyIdeas.map(i=>`<li>${i}</li>`).join('')}</ul>
+            </div>`;
+        });
+    });
+    return html;
+}
+
+function renderFlashcards() {
+    const topics = getTopics();
+    const topicIds = getAllTopicIds();
+    const cards = learningFlashcards.filter(c => topicIds.includes(c.topic));
+    const filtered = currentFilter === 'all' ? cards : cards.filter(c => {
+        const catTopics = topics[currentFilter];
+        return catTopics && catTopics.some(t => t.id === c.topic);
+    });
+    let html = `<h2 style="color:#4fc3f7;margin-bottom:1rem">${currentExam==='mcq'?'MCQ':'SAQ'} - Learning Flashcards</h2>`;
+    html += renderFilterBar();
+    html += renderProgressStats('flash');
+    html += '<div class="flashcard-container">';
+    filtered.forEach((card, i) => {
+        const id = `flash-${currentExam}-${card.topic}-${i}`;
+        const rag = getRagClass(id);
+        html += `<div class="flashcard" onclick="flipCard(this)">
+            <div class="flashcard-inner">
+                <div class="flashcard-front" style="border-color:${rag==='green'?'#66bb6a':rag==='amber'?'#ffa726':rag==='red'?'#ef5350':'#4fc3f7'}">
+                    <span style="font-size:0.75rem;color:#aaa;margin-bottom:0.5rem">${card.topic}</span>
+                    <p style="font-size:1.1rem">${card.front}</p>
+                </div>
+                <div class="flashcard-back">
+                    <p>${card.back}</p>
+                </div>
+            </div>
+            <div class="rag-buttons" data-rag-id="${id}" onclick="event.stopPropagation()">
+                <button class="rag-btn red ${rag==='red'?'active-red':''}" onclick="setRag('${id}','red')">🔴 Red</button>
+                <button class="rag-btn amber ${rag==='amber'?'active-amber':''}" onclick="setRag('${id}','amber')">🟠 Amber</button>
+                <button class="rag-btn green ${rag==='green'?'active-green':''}" onclick="setRag('${id}','green')">🟢 Green</button>
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function renderMCQFlash() {
+    const filtered = currentFilter === 'all' ? mcqQuestions : mcqQuestions.filter(q => {
+        const topics = mcqTopics[currentFilter];
+        return topics && topics.some(t => t.id === q.topic);
+    });
+    let html = `<h2 style="color:#4fc3f7;margin-bottom:1rem">MCQ Flashcards (${filtered.length} questions)</h2>`;
+    html += renderFilterBar();
+    html += renderProgressStats('mcq');
+    html += '<div class="flashcard-container">';
+    filtered.forEach((q, i) => {
+        const id = `mcq-${q.topic}-${i}`;
+        const rag = getRagClass(id);
+        html += `<div class="flashcard" onclick="flipCard(this)">
+            <div class="flashcard-inner">
+                <div class="flashcard-front" style="border-color:${rag==='green'?'#66bb6a':rag==='amber'?'#ffa726':rag==='red'?'#ef5350':'#4fc3f7'}">
+                    <span style="font-size:0.75rem;color:#aaa;margin-bottom:0.5rem">${q.topic}</span>
+                    <p style="font-size:0.95rem">${q.q}</p>
+                </div>
+                <div class="flashcard-back">
+                    <p style="color:#66bb6a;font-weight:bold;margin-bottom:0.5rem">✓ ${q.options[q.answer]}</p>
+                    <ul>${q.options.map((o,idx) => `<li style="color:${idx===q.answer?'#66bb6a':'#aaa'}">${String.fromCharCode(65+idx)}) ${o}</li>`).join('')}</ul>
+                </div>
+            </div>
+            <div class="rag-buttons" data-rag-id="${id}" onclick="event.stopPropagation()">
+                <button class="rag-btn red ${rag==='red'?'active-red':''}" onclick="setRag('${id}','red')">🔴</button>
+                <button class="rag-btn amber ${rag==='amber'?'active-amber':''}" onclick="setRag('${id}','amber')">🟠</button>
+                <button class="rag-btn green ${rag==='green'?'active-green':''}" onclick="setRag('${id}','green')">🟢</button>
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function renderSAQFlash() {
+    const topicIds = getAllTopicIds();
+    const cards = saqQuestions.filter(c => topicIds.includes(c.topic));
+    const filtered = currentFilter === 'all' ? cards : cards.filter(q => {
+        const topics = saqTopics[currentFilter];
+        return topics && topics.some(t => t.id === q.topic);
+    });
+    let html = `<h2 style="color:#4fc3f7;margin-bottom:1rem">SAQ Flashcards (${filtered.length} questions)</h2>`;
+    html += renderFilterBar();
+    html += renderProgressStats('saq');
+    html += '<div class="flashcard-container">';
+    filtered.forEach((q, i) => {
+        const id = `saq-${q.topic}-${i}`;
+        const rag = getRagClass(id);
+        html += `<div class="flashcard" style="height:350px" onclick="flipCard(this)">
+            <div class="flashcard-inner">
+                <div class="flashcard-front" style="border-color:${rag==='green'?'#66bb6a':rag==='amber'?'#ffa726':rag==='red'?'#ef5350':'#4fc3f7'}">
+                    <span style="font-size:0.75rem;color:#aaa;margin-bottom:0.5rem">${q.topic}</span>
+                    <p style="font-size:1rem">${q.q}</p>
+                    <p style="font-size:0.7rem;color:#666;margin-top:1rem">Click to reveal 5 bullet points + example answer</p>
+                </div>
+                <div class="flashcard-back" style="font-size:0.8rem">
+                    <p style="color:#4fc3f7;font-weight:bold;margin-bottom:0.5rem">Key Points:</p>
+                    <ul>${q.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+                    <p style="color:#ffa726;font-weight:bold;margin-top:0.5rem">5/5 Example:</p>
+                    <p style="font-size:0.75rem">${q.example.substring(0,300)}...</p>
+                </div>
+            </div>
+            <div class="rag-buttons" data-rag-id="${id}" onclick="event.stopPropagation()">
+                <button class="rag-btn red ${rag==='red'?'active-red':''}" onclick="setRag('${id}','red')">🔴</button>
+                <button class="rag-btn amber ${rag==='amber'?'active-amber':''}" onclick="setRag('${id}','amber')">🟠</button>
+                <button class="rag-btn green ${rag==='green'?'active-green':''}" onclick="setRag('${id}','green')">🟢</button>
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function renderProgressStats(prefix) {
+    let total = 0, green = 0, amber = 0, red = 0;
+    Object.entries(ragRatings).forEach(([k,v]) => {
+        if(k.startsWith(prefix) || (prefix === 'flash' && k.startsWith('flash'))) {
+            total++;
+            if(v==='green') green++;
+            else if(v==='amber') amber++;
+            else if(v==='red') red++;
+        }
+    });
+    return `<div class="stats-panel">
+        <h3 style="color:#4fc3f7;margin-bottom:0.5rem">Progress Tracker</h3>
+        <div class="stats-grid">
+            <div class="stat-box"><div class="number" style="color:#66bb6a">${green}</div><div class="label">Green ✓</div></div>
+            <div class="stat-box"><div class="number" style="color:#ffa726">${amber}</div><div class="label">Amber ~</div></div>
+            <div class="stat-box"><div class="number" style="color:#ef5350">${red}</div><div class="label">Red ✗</div></div>
+            <div class="stat-box"><div class="number">${total}</div><div class="label">Rated</div></div>
+        </div>
+        <div class="progress-bar" id="progress-bar"></div>
+    </div>`;
+}
+
+function renderPractice() {
+    let html = `<h2 style="color:#4fc3f7;margin-bottom:1rem">Practice Papers - Timed Conditions</h2>`;
+    html += `<div class="stats-panel">
+        <h3 style="color:#4fc3f7">Exam Timer</h3>
+        <p style="color:#aaa;margin:0.5rem 0">${currentExam==='mcq'?'MCQ: 60 minutes for 60 questions':'SAQ: 120 minutes for 12 questions (choose 12 of 14)'}</p>
+        <div class="timer-display" id="timer">${formatTime(timerSeconds)}</div>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="startTimer()">▶ Start</button>
+            <button class="btn btn-secondary" onclick="pauseTimer()">⏸ Pause</button>
+            <button class="btn btn-secondary" onclick="resetTimer()">↺ Reset</button>
+            <button class="btn btn-secondary" onclick="setTimerPreset('mcq')">Set MCQ (60 min)</button>
+            <button class="btn btn-secondary" onclick="setTimerPreset('saq')">Set SAQ (120 min)</button>
+        </div>
+    </div>`;
+
+    if(currentExam === 'mcq') {
+        html += `<div class="stats-panel">
+            <h3 style="color:#4fc3f7">MCQ Practice Paper</h3>
+            <p style="color:#aaa;margin:0.5rem 0">60 questions, 60 marks, 60 minutes. Answer ALL questions. Click to reveal answers after attempting.</p>
+            <button class="btn btn-primary" onclick="generateMCQPaper()" style="margin:1rem 0">Generate New Paper</button>
+            <div id="practice-paper"></div>
+        </div>`;
+    } else {
+        html += `<div class="stats-panel">
+            <h3 style="color:#4fc3f7">SAQ Practice Paper</h3>
+            <p style="color:#aaa;margin:0.5rem 0">14 questions presented - answer any 12. Each scored out of 5 marks (some questions have 2 parts). 120 minutes total.</p>
+            <button class="btn btn-primary" onclick="generateSAQPaper()" style="margin:1rem 0">Generate New Paper</button>
+            <div id="practice-paper"></div>
+        </div>`;
+    }
+    return html;
+}
+
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function startTimer() {
+    if(timerRunning) return;
+    timerRunning = true;
+    timerInterval = setInterval(() => {
+        if(timerSeconds > 0) {
+            timerSeconds--;
+            document.getElementById('timer').textContent = formatTime(timerSeconds);
+        } else {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            alert('⏰ Time is up! Stop writing.');
+        }
+    }, 1000);
+}
+
+function pauseTimer() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+}
+
+function resetTimer() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerSeconds = currentExam === 'mcq' ? 3600 : 7200;
+    document.getElementById('timer').textContent = formatTime(timerSeconds);
+}
+
+function setTimerPreset(type) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerSeconds = type === 'mcq' ? 3600 : 7200;
+    document.getElementById('timer').textContent = formatTime(timerSeconds);
+}
+
+function generateMCQPaper() {
+    const shuffled = [...mcqQuestions].sort(() => Math.random() - 0.5).slice(0, 60);
+    let html = '';
+    shuffled.forEach((q, i) => {
+        html += `<div class="mcq-question" id="q${i}">
+            <h4>Q${i+1}. ${q.q}</h4>
+            ${q.options.map((o, idx) => `<div class="mcq-option" onclick="checkMCQ(this,${idx},${q.answer},'q${i}')">${String.fromCharCode(65+idx)}) ${o}</div>`).join('')}
+        </div>`;
+    });
+    document.getElementById('practice-paper').innerHTML = html;
+}
+
+function checkMCQ(el, selected, correct, qId) {
+    const options = document.querySelectorAll(`#${qId} .mcq-option`);
+    options.forEach((opt, idx) => {
+        opt.style.pointerEvents = 'none';
+        if(idx === correct) opt.classList.add('correct');
+        if(idx === selected && selected !== correct) opt.classList.add('incorrect');
+    });
+}
+
+function generateSAQPaper() {
+    const shuffled = [...saqQuestions].sort(() => Math.random() - 0.5).slice(0, 14);
+    let html = '<p style="color:#ffa726;margin-bottom:1rem"><strong>Instructions:</strong> Answer 12 of the following 14 questions. Each question is worth up to 10 marks. Write your answers on paper, then reveal model answers to self-assess.</p>';
+    shuffled.forEach((q, i) => {
+        html += `<div class="mcq-question">
+            <h4>Q${i+1}. [${q.topic.toUpperCase()}] ${q.q}</h4>
+            <p style="color:#aaa;font-size:0.85rem;margin:0.5rem 0">(10 marks - aim for 5 key points with examples)</p>
+            <textarea style="width:100%;height:100px;background:#0f3460;color:#eee;border:1px solid #4fc3f7;border-radius:8px;padding:1rem;font-family:inherit;resize:vertical" placeholder="Write your answer here..."></textarea>
+            <button class="btn btn-secondary" style="margin-top:0.5rem" onclick="this.nextElementSibling.style.display='block'">Reveal Model Answer</button>
+            <div style="display:none;margin-top:1rem;padding:1rem;background:#0a1628;border-radius:8px;border-left:3px solid #66bb6a">
+                <p style="color:#66bb6a;font-weight:bold">Model Answer (5/5):</p>
+                <ul style="color:#ccc;padding-left:1rem">${q.bullets.map(b=>`<li style="margin:0.3rem 0">${b}</li>`).join('')}</ul>
+                <p style="color:#ffa726;font-weight:bold;margin-top:0.5rem">Full Example:</p>
+                <p style="color:#aaa;font-size:0.85rem">${q.example}</p>
+            </div>
+        </div>`;
+    });
+    document.getElementById('practice-paper').innerHTML = html;
+}
+
+function renderPodcasts() {
+    const topics = getTopics();
+    let html = `<h2 style="color:#4fc3f7;margin-bottom:1rem">${currentExam==='mcq'?'MCQ':'SAQ'} - Topic Podcasts</h2>`;
+    html += `<p style="color:#aaa;margin-bottom:1rem">Audio explanations of each topic with key examples. Click "Read Aloud" to have your browser read the script (uses text-to-speech), or read the scripts below.</p>`;
+    html += renderFilterBar();
+    Object.entries(topics).forEach(([category, items]) => {
+        if(currentFilter !== 'all' && currentFilter !== category) return;
+        html += `<div class="category-header"><h2>${category.charAt(0).toUpperCase()+category.slice(1)}</h2></div>`;
+        items.forEach(topic => {
+            const podcast = podcastData[topic.id];
+            if(!podcast) return;
+            html += `<div class="podcast-card">
+                <h3>🎧 ${podcast.title}</h3>
+                <p>Key concepts, models and memorable examples for ${podcast.title}</p>
+                <div class="audio-placeholder">
+                    <button class="btn btn-primary" onclick="speakText('${topic.id}')">🔊 Read Aloud</button>
+                    <button class="btn btn-secondary" onclick="stopSpeech()" style="margin-left:0.5rem">⏹ Stop</button>
+                    <button class="btn btn-secondary" onclick="toggleScript('script-${topic.id}')" style="margin-left:0.5rem">📄 Show Script</button>
+                </div>
+                <div id="script-${topic.id}" style="display:none;margin-top:1rem;padding:1rem;background:#0f3460;border-radius:8px">
+                    <p style="color:#ccc;line-height:1.8">${podcast.script}</p>
+                </div>
+            </div>`;
+        });
+    });
+    return html;
+}
+
+function speakText(topicId) {
+    stopSpeech();
+    const podcast = podcastData[topicId];
+    if(!podcast) return;
+    const utterance = new SpeechSynthesisUtterance(podcast.script);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.lang = 'en-GB';
+    speechSynthesis.speak(utterance);
+}
+
+function stopSpeech() { speechSynthesis.cancel(); }
+
+function toggleScript(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function renderTips() {
+    const tips = currentExam === 'mcq' ? examTips.mcq : examTips.saq;
+    let html = `<h2 style="color:#4fc3f7;margin-bottom:1rem">${currentExam==='mcq'?'MCQ':'SAQ'} Exam Tips</h2>`;
+    html += `<div class="stats-panel">
+        <h3 style="color:#ffa726">📋 Exam Overview</h3>
+        ${currentExam==='mcq' ? 
+            '<p style="color:#ccc;line-height:1.8">• Duration: 60 minutes<br>• Questions: 60 multiple choice<br>• Marks: 60 (1 mark per question)<br>• Pass mark: typically 60% (36/60)<br>• No negative marking<br>• Topics: Perspective (Strategy, Compliance), People (Self-reflection, Integrity, Communication, Negotiation, Results), Practice (Design, Requirements, Scope, Procurement, Plan & Control, Risk, Change)</p>' :
+            '<p style="color:#ccc;line-height:1.8">• Duration: 120 minutes<br>• Questions: 14 presented, answer 12<br>• Marks: 120 total (10 marks per question, typically 2 sub-parts of 5 marks each)<br>• Pass mark: typically 60% (72/120)<br>• Topics: Perspective (Governance, Power & Interest, Culture), People (Relationships, Leadership, Teamwork, Conflict, Resourcefulness), Practice (Time, Organisation, Quality, Finance, Resources, Stakeholders)</p>'
+        }
+    </div>`;
+    tips.forEach(tip => {
+        html += `<div class="tip-card">
+            <h3>💡 ${tip.title}</h3>
+            <p style="color:#ccc;line-height:1.6">${tip.tip}</p>
+        </div>`;
+    });
+    html += `<div class="tip-card" style="border-left-color:#66bb6a">
+        <h3 style="color:#66bb6a">🎯 Quick Revision Checklist</h3>
+        <ul style="color:#ccc;line-height:2;padding-left:1.5rem">
+            <li>Can I name and explain ALL models for each topic?</li>
+            <li>Can I define each competence element in one sentence?</li>
+            <li>Do I have a practical example for each topic?</li>
+            <li>Can I explain WHY each model/approach is useful (not just WHAT it is)?</li>
+            <li>Do I know the difference between similar concepts (QA vs QC, Risk vs Issue, Output vs Outcome)?</li>
+            <li>Can I apply models to a scenario (not just describe them)?</li>
+            <li>Have I practised under timed conditions?</li>
+            <li>Are all my flashcards at GREEN?</li>
+        </ul>
+    </div>`;
+    return html;
+}
+
+// ===== INITIALISE =====
+timerSeconds = 3600;
+render();
+</script>
+</body>
+</html>
